@@ -1,0 +1,8 @@
+*.a
+*.o
+*.so
+*.dylib
+*.dSYM
+*-test
+/Makefile
+/test_store.png

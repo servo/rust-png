@@ -1,0 +1,31 @@
+VPATH=%VPATH%
+
+CC ?= gcc
+CXX ?= g++
+CXXFLAGS ?=
+AR ?= ar
+RUSTC ?= rustc
+RUSTFLAGS ?=
+
+.PHONY: all
+all:	librustpng.dummy
+
+%.o: %.c
+	$(CC) $< -o $@ -c $(CFLAGS)
+
+librustpng.dummy: lib.rs libshim.a
+	$(RUSTC) $(RUSTFLAGS) $< --lib -o $@
+	touch $@
+
+rustpng-test: lib.rs libshim.a
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+
+libshim.a: shim.o
+	$(AR) rcs libshim.a shim.o
+
+check: rustpng-test
+	./rustpng-test
+
+.PHONY: clean
+clean:
+	rm -f *.o *.a *.so *.dylib *.dll *.dummy *-test
