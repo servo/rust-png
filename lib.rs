@@ -179,6 +179,10 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
         ffi::png_set_rows(&*png_ptr, info_ptr, vec::raw::to_ptr(row_pointers));
 
         ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null());
+
+        let png_ptr: *ffi::png_struct = &*png_ptr;
+        let info_ptr: *ffi::png_info = &*info_ptr;
+        ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
     }
     Ok(())
 }
