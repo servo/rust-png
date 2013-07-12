@@ -12,7 +12,11 @@
 #[crate_type = "lib"];
 
 extern mod std;
-use core::libc::{c_int, size_t};
+use std::cast;
+use std::io;
+use std::ptr;
+use std::vec;
+use std::libc::{c_int, size_t};
 
 pub mod ffi;
 
@@ -132,7 +136,7 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
 }
 
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
-    let writer = @match io::file_writer(path, ~[io::Create]) {
+    let writer = @match io::file_writer(path, [io::Create]) {
         Ok(w) => w,
         Err(s) => return Err(s)
     };

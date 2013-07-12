@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core::libc::{c_int, size_t, c_void, c_char};
+use std::libc::{c_int, size_t, c_void, c_char};
 
 pub static TRANSFORM_IDENTITY: c_int = 0;
 
