@@ -193,6 +193,8 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
+    use std::io;
+    use std::vec;
     use super::{ffi, load_png, store_png, RGB8, Image};
 
     #[test]
@@ -203,7 +205,7 @@ mod test {
         };
         
         let mut buf = vec::from_elem(1024, 0u8);
-        let count = reader.read(vec::mut_slice(buf, 0, 1024), 1024);
+        let count = reader.read(buf.mut_slice(0, 1024), 1024);
         assert!(count >= 8);
         unsafe {
             let res = ffi::png_sig_cmp(vec::raw::to_ptr(buf), 0, 8);
