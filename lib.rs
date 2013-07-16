@@ -70,7 +70,7 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
             ffi::png_destroy_read_struct(&png_ptr, ptr::null(), ptr::null());
             return Err(~"could not create info struct");
         }
-        let res = ffi::setjmp(ffi::png_set_longjmp_fn(png_ptr, ffi::rust_longjmp, ffi::jmp_buf_size()));
+        let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
@@ -155,7 +155,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
             ffi::png_destroy_write_struct(&png_ptr, ptr::null());
             return Err(~"could not create info struct");
         }
-        let res = ffi::setjmp(ffi::png_set_longjmp_fn(png_ptr, ffi::rust_longjmp, ffi::jmp_buf_size()));
+        let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
