@@ -1,6 +1,6 @@
-#include <stddef.h>
 #include <setjmp.h>
+#include <png.h>
 
-size_t jmp_buf_size() {
-  return sizeof(jmp_buf);
+jmp_buf *pngshim_jmpbuf(png_struct *png_ptr) {
+  return &png_jmpbuf(png_ptr);
 }

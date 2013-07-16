@@ -27,23 +27,18 @@ pub static COLOR_TYPE_RGBA: c_int = 6;
 pub type png_struct = c_void;
 pub type png_info = c_void;
 
-pub extern fn rust_longjmp(env: *c_void, val: c_int) {
-    unsafe { longjmp(env, val); }
-}
-
 pub extern {
     // libc routines needed
     pub fn setjmp(env: *c_void) -> c_int;
-    pub fn longjmp(env: *c_void, val: c_int);
 
     // shim routines
-    pub fn jmp_buf_size() -> size_t;
+    pub fn pngshim_jmpbuf(pnt_ptr: *mut png_struct) -> *c_void;
 
+    // libpng routines
     pub fn png_get_header_ver(png_ptr: *png_struct) -> *c_char;
     pub fn png_sig_cmp(sig: *u8, start: size_t, num_to_check: size_t) -> c_int;
 
     pub fn png_create_info_struct(png_ptr: *png_struct) -> *mut png_info;
-    pub fn png_set_longjmp_fn(png_ptr: *mut png_struct, longjmp_fn: *u8, jmp_buf_size: size_t) -> *c_void;
     pub fn png_get_io_ptr(png_ptr: *png_struct) -> *mut c_void;
     pub fn png_set_sig_bytes(png_ptr: *mut png_struct, num_bytes: c_int);
 
