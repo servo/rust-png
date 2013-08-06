@@ -94,10 +94,10 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
             _ => fail!(~"color type not supported"),
         };
 
-        let mut image_data = vec::from_elem(width * height * pixel_width as uint, 0u8);
+        let mut image_data = vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = vec::raw::to_mut_ptr(image_data);
         let row_pointers: ~[*mut u8] = do vec::from_fn(height as uint) |idx| {
-            ptr::mut_offset(image_buf, (width * pixel_width as uint) * idx)
+            ptr::mut_offset(image_buf, (((width * pixel_width) as uint) * idx) as int)
         };
 
         ffi::png_read_image(png_ptr, vec::raw::to_ptr(row_pointers));
@@ -178,7 +178,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
         let image_buf = vec::raw::to_ptr(img.pixels);
         let row_pointers: ~[*u8] = do vec::from_fn(img.height as uint) |idx| {
-            ptr::offset(image_buf, (img.width * pixel_width as uint) * idx)
+            ptr::offset(image_buf, (((img.width * pixel_width) as uint) * idx) as int)
         };
         ffi::png_set_rows(&*png_ptr, info_ptr, vec::raw::to_ptr(row_pointers));
 
