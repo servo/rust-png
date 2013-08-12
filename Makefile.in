@@ -6,6 +6,9 @@ CFLAGS += -fPIC
 AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS ?=
+ifeq ($(CFG_OSTYPE),linux-androideabi)
+RUSTFLAGS += -L ../../../platform/android/libpng/.libs
+endif
 
 .PHONY: all
 all:	librustpng.dummy
