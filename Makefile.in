@@ -17,11 +17,11 @@ all:	librustpng.dummy
 	$(CC) $< -o $@ -c $(CFLAGS)
 
 librustpng.dummy: lib.rs libshim.a
-	$(RUSTC) $(RUSTFLAGS) $< --lib -o $@
+	$(RUSTC) $(RUSTFLAGS) $< --lib --out-dir .
 	touch $@
 
 rustpng-test: lib.rs libshim.a
-	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir . --test
 
 libshim.a: shim.o
 	$(AR) rcs libshim.a shim.o
