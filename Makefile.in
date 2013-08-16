@@ -21,7 +21,7 @@ librustpng.dummy: lib.rs libshim.a
 	touch $@
 
 rustpng-test: lib.rs libshim.a
-	$(RUSTC) $(RUSTFLAGS) $< --out-dir . --test
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
 
 libshim.a: shim.o
 	$(AR) rcs libshim.a shim.o
