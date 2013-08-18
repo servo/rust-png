@@ -2,7 +2,7 @@ VPATH=%VPATH%
 
 CC ?= gcc
 CXX ?= g++
-CFLAGS += -fPIC
+CFLAGS += -fPIC -I../png
 AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS ?=
