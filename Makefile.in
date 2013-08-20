@@ -2,14 +2,11 @@ VPATH=%VPATH%
 
 CC ?= gcc
 CXX ?= g++
-CFLAGS += -fPIC -I$(VPATH)/../png
+CFLAGS += -fPIC -I$(VPATH)/../libpng
 AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS ?=
-RUSTFLAGS += ../png
-ifeq ($(CFG_OSTYPE),linux-androideabi)
-RUSTFLAGS += -L ../../../platform/android/libpng/.libs
-endif
+RUSTFLAGS += -L ../libpng
 
 .PHONY: all
 all:	librustpng.dummy
