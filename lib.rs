@@ -50,6 +50,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
     }
 }
 
+#[fixed_stack_segment]
 pub fn load_png(path: &Path) -> Result<Image,~str> {
     let reader = @match io::file_reader(path) {
         Ok(r) => r,
@@ -135,6 +136,7 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     }
 }
 
+#[fixed_stack_segment]
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
     let writer = @match io::file_writer(path, [io::Create]) {
         Ok(w) => w,
@@ -198,6 +200,7 @@ mod test {
     use super::{ffi, load_png, store_png, RGB8, Image};
 
     #[test]
+    #[fixed_stack_segment]
     fn test_valid_png() {
         let reader = match io::file_reader(&Path("test.png")) {
             Ok(r) => r,
