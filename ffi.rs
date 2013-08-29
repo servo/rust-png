@@ -44,14 +44,14 @@ extern {
 
     pub fn png_create_read_struct(user_png_ver: *c_char, error_ptr: *c_void, error_fn: *u8, warn_fn: *u8) -> *mut png_struct;
     pub fn png_destroy_read_struct(png_ptr_ptr: **png_struct, info_ptr_ptr: **png_info, end_info_ptr_ptr: **png_info);
-    pub fn png_set_read_fn(png_ptr: *mut png_struct, io_ptr: *mut c_void, read_data_fn: *u8);
+    pub fn png_set_read_fn(png_ptr: *mut png_struct, io_ptr: *mut c_void, read_data_fn: extern "C" fn(*png_struct, *mut u8, size_t));
     pub fn png_read_info(png_ptr: *mut png_struct, info_ptr: *mut png_info);
     pub fn png_read_image(png_ptr: *mut png_struct, row_pointers: **mut u8);
     pub fn png_read_png(png_ptr: *mut png_struct, info_ptr: *mut png_info, transforms: c_int, params: *c_void);
 
     pub fn png_create_write_struct(user_png_ver: *c_char, error_ptr: *c_void, error_fn: *u8, warn_fn: *u8) -> *mut png_struct;
     pub fn png_destroy_write_struct(png_ptr_ptr: **png_struct, info_ptr_ptr: **png_info);
-    pub fn png_set_write_fn(png_ptr: *mut png_struct, io_ptr: *mut c_void, write_data_fn: *u8, output_flush_ptr: *u8);
+    pub fn png_set_write_fn(png_ptr: *mut png_struct, io_ptr: *mut c_void, write_data_fn: extern "C" fn(*png_struct, *u8, size_t), output_flush_ptr: extern "C" fn(*png_struct));
     pub fn png_write_png(pnt_ptr: *mut png_struct, info_ptr: *mut png_info, transforms: c_int, params: *c_void); // ??
 
     pub fn png_get_IHDR(png_ptr: *png_struct, info_ptr: *png_info, width: *mut u32, height: *mut u32, bit_depth: *mut c_int, color_type: *mut c_int, interlace_method: *mut c_int, compression_method: *mut c_int, filter_method: *mut c_int) -> u32;
