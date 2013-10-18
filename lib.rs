@@ -202,7 +202,7 @@ mod test {
     #[test]
     #[fixed_stack_segment]
     fn test_valid_png() {
-        let reader = match io::file_reader(&Path("test.png")) {
+        let reader = match io::file_reader(&Path::new("test.png")) {
             Ok(r) => r,
             Err(s) => fail!(s),
         };
@@ -218,7 +218,7 @@ mod test {
 
     #[test]
     fn test_load() {
-        let res = load_png(&Path("test.png"));
+        let res = load_png(&Path::new("test.png"));
         assert!(res.is_ok());
     }
 
@@ -230,7 +230,7 @@ mod test {
             color_type: RGB8,
             pixels: vec::from_elem(10 * 10 * 3, 100u8),
         };
-        let res = store_png(&img, &Path("test_store.png"));
+        let res = store_png(&img, &Path::new("test_store.png"));
         assert!(res.is_ok());
     }
 }
