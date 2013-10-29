@@ -10,10 +10,12 @@
 #[link(name = "png",
        vers = "0.1")];
 #[crate_type = "lib"];
+#[feature(managed_boxes)];
 
 extern mod std;
 use std::cast;
-use std::io;
+use std::rt::io;
+use std::rt::io::file;
 use std::ptr;
 use std::vec;
 use std::libc::{c_int, size_t};
@@ -42,9 +44,9 @@ pub struct Image {
 pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let reader: @@Reader = cast::transmute(io_ptr);
+        let reader: @@mut io::Reader = cast::transmute(io_ptr);
         do vec::raw::mut_buf_as_slice(data, length as uint) |buf| {
-            reader.read(buf, length as uint);
+            reader.read(buf);
         }
         cast::forget(reader);
     }
@@ -52,10 +54,13 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
 
 #[fixed_stack_segment]
 pub fn load_png(path: &Path) -> Result<Image,~str> {
-    let reader = @match io::file_reader(path) {
-        Ok(r) => r,
-        Err(s) => return Err(s)
+    let reader = match file::open(path, io::Open, io::Read) {
+        Some(r) => @mut r as @mut io::Reader,
+        None => return Err(~"could not open file")
     };
+
+    // Box it again because an @Trait is too big to fit in a void*
+    let reader = @reader;
 
     unsafe {
         let png_ptr = ffi::png_create_read_struct(ffi::png_get_header_ver(ptr::null()),
@@ -119,7 +124,7 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
 pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: @@Writer = cast::transmute(io_ptr);
+        let writer: @@mut io::Writer = cast::transmute(io_ptr);
         do vec::raw::buf_as_slice(data, length as uint) |buf| {
             writer.write(buf);
         }
@@ -130,7 +135,7 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
 pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: @@Writer = cast::transmute(io_ptr);
+        let writer: @@mut io::Writer = cast::transmute(io_ptr);
         writer.flush();
         cast::forget(writer);
     }
@@ -138,10 +143,13 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
 
 #[fixed_stack_segment]
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
-    let writer = @match io::file_writer(path, [io::Create]) {
-        Ok(w) => w,
-        Err(s) => return Err(s)
+    let writer = match file::open(path, io::Create, io::Write) {
+        Some(w) => @mut w as @mut io::Writer,
+        None => return Err(~"could not open file")
     };
+
+    // Box it again because an @Trait is too big to fit in a void*
+    let writer = @writer;
 
     unsafe {
         let png_ptr = ffi::png_create_write_struct(ffi::png_get_header_ver(ptr::null()),
@@ -195,20 +203,22 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
-    use std::io;
+    use std::rt::io;
+    use std::rt::io::Reader;
+    use std::rt::io::file;
     use std::vec;
     use super::{ffi, load_png, store_png, RGB8, Image};
 
     #[test]
     #[fixed_stack_segment]
     fn test_valid_png() {
-        let reader = match io::file_reader(&Path::new("test.png")) {
-            Ok(r) => r,
-            Err(s) => fail!(s),
+        let mut reader = match file::open(& &"test.png", io::Open, io::Read) {
+            Some(r) => r,
+            None => fail!("could not open file"),
         };
-        
+
         let mut buf = vec::from_elem(1024, 0u8);
-        let count = reader.read(buf.mut_slice(0, 1024), 1024);
+        let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
             let res = ffi::png_sig_cmp(vec::raw::to_ptr(buf), 0, 8);
