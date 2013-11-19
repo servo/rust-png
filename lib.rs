@@ -15,7 +15,7 @@
 extern mod std;
 use std::cast;
 use std::rt::io;
-use std::rt::io::file;
+use std::rt::io::{file, Reader};
 use std::ptr;
 use std::vec;
 use std::libc::{c_int, size_t};
@@ -41,27 +41,49 @@ pub struct Image {
     pixels: ~[u8],
 }
 
-pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
-    unsafe {
-        let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let reader: @@mut io::Reader = cast::transmute(io_ptr);
-        do vec::raw::mut_buf_as_slice(data, length as uint) |buf| {
-            reader.read(buf);
-        }
-        cast::forget(reader);
-    }
+// This intermediate data structure is used to read
+// an image data from 'offset' position, and store it
+// to the data vector.
+struct ImageData<'self> {
+    data: &'self [u8],
+    offset: uint,
 }
 
 #[fixed_stack_segment]
+pub fn is_png(image: &[u8]) -> bool {
+    do image.as_imm_buf |bytes, _len| {
+        unsafe {
+            ffi::png_sig_cmp(bytes, 0, 8) == 0
+        }
+    }
+}
+
+pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
+    unsafe {
+        let io_ptr = ffi::png_get_io_ptr(png_ptr);
+        let image_data: &mut ImageData = cast::transmute(io_ptr);
+        let len = length as uint;
+        do vec::raw::mut_buf_as_slice(data, len) |buf| {
+            let end_pos = std::num::min(image_data.data.len()-image_data.offset, len);
+            vec::raw::copy_memory(buf,
+                                  image_data.data.slice(image_data.offset, image_data.offset+end_pos),
+                                  end_pos);
+            image_data.offset += end_pos;
+        }
+    }
+}
+
 pub fn load_png(path: &Path) -> Result<Image,~str> {
-    let reader = match file::open(path, io::Open, io::Read) {
-        Some(r) => @mut r as @mut io::Reader,
-        None => return Err(~"could not open file")
+    let mut reader = match file::open(path, io::Open, io::Read) {
+        Some(r) => r,
+        None => return Err(~"could not open file"),
     };
+    let buf = reader.read_to_end();
+    load_png_from_memory(buf)
+}
 
-    // Box it again because an @Trait is too big to fit in a void*
-    let reader = @reader;
-
+#[fixed_stack_segment]
+pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
     unsafe {
         let png_ptr = ffi::png_create_read_struct(ffi::png_get_header_ver(ptr::null()),
                                                   ptr::null(),
@@ -84,7 +106,12 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
             return Err(~"error reading png");
         }
 
-        ffi::png_set_read_fn(png_ptr, cast::transmute(reader), read_data);
+        let mut image_data = ImageData {
+            data: image,
+            offset: 0,
+        };
+
+        ffi::png_set_read_fn(png_ptr, cast::transmute(&mut image_data), read_data);
         ffi::png_read_info(png_ptr, info_ptr);
 
         let width = ffi::png_get_image_width(&*png_ptr, &*info_ptr);
@@ -92,9 +119,29 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
         let bit_depth = ffi::png_get_bit_depth(&*png_ptr, &*info_ptr);
         let color_type = ffi::png_get_color_type(&*png_ptr, &*info_ptr);
 
+        // we convert palette to rgb
+        if color_type as c_int == ffi::COLOR_TYPE_PALETTE {
+            ffi::png_set_palette_to_rgb(png_ptr);
+        }
+        // make each channel use 1 byte
+        if (color_type as c_int == ffi::COLOR_TYPE_GRAY) && (bit_depth < 8) {
+            ffi::png_set_expand_gray_1_2_4_to_8(png_ptr);
+        }
+        // add alpha channels to palette and rgb
+        if (color_type as c_int == ffi::COLOR_TYPE_PALETTE) ||
+            (color_type as c_int == ffi::COLOR_TYPE_RGB) {
+            ffi::png_set_tRNS_to_alpha(png_ptr);
+            ffi::png_set_filler(png_ptr, 0xff, ffi::FILLER_AFTER);
+        }
+
+        ffi::png_set_packing(png_ptr);
+        ffi::png_set_interlace_handling(png_ptr);
+        ffi::png_read_update_info(png_ptr, info_ptr);
+
         let (color_type, pixel_width) = match (color_type as c_int, bit_depth) {
-            (ffi::COLOR_TYPE_RGB, 8) => (RGB8, 3),
-            (ffi::COLOR_TYPE_RGBA, 8) => (RGBA8, 4),
+            (ffi::COLOR_TYPE_RGB, 8) |
+            (ffi::COLOR_TYPE_RGBA, 8) |
+            (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
             (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
             (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
             _ => fail!(~"color type not supported"),
@@ -174,7 +221,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
         }
 
         ffi::png_set_write_fn(png_ptr, cast::transmute(writer), write_data, flush_data);
-        
+
         let (bit_depth, color_type, pixel_width) = match img.color_type {
             RGB8 => (8, ffi::COLOR_TYPE_RGB, 3),
             RGBA8 => (8, ffi::COLOR_TYPE_RGBA, 4),
@@ -182,7 +229,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
             KA8 => (8, ffi::COLOR_TYPE_GA, 2),
             _ => fail!("bad color type"),
         };
-        
+
         ffi::png_set_IHDR(&*png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
