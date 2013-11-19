@@ -52,6 +52,7 @@ extern {
     pub fn png_read_info(png_ptr: *mut png_struct, info_ptr: *mut png_info);
     pub fn png_read_update_info(png_ptr: *mut png_struct, info_ptr: *mut png_info);
     pub fn png_read_image(png_ptr: *mut png_struct, row_pointers: **mut u8);
+    pub fn png_read_png(png_ptr: *mut png_struct, info_ptr: *mut png_info, transforms: c_int, params: *c_void);
 
     pub fn png_create_write_struct(user_png_ver: *c_char, error_ptr: *c_void, error_fn: *u8, warn_fn: *u8) -> *mut png_struct;
     pub fn png_destroy_write_struct(png_ptr_ptr: **png_struct, info_ptr_ptr: **png_info);
