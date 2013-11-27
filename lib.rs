@@ -250,16 +250,15 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
-    use std::rt::io;
-    use std::rt::io::Reader;
-    use std::rt::io::file;
+    use std::io;
+    use std::io::File;
     use std::vec;
     use super::{ffi, load_png, store_png, RGB8, Image};
 
     #[test]
     #[fixed_stack_segment]
     fn test_valid_png() {
-        let mut reader = match File::open_mode(& &"test.png", io::Open, io::Read) {
+        let mut reader = match File::open_mode(&Path::new("test.png"), io::Open, io::Read) {
             Some(r) => r,
             None => fail!("could not open file"),
         };
