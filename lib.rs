@@ -14,8 +14,8 @@
 
 extern mod std;
 use std::cast;
-use std::rt::io;
-use std::rt::io::{file, Reader};
+use std::io;
+use std::io::File;
 use std::ptr;
 use std::vec;
 use std::libc::{c_int, size_t};
@@ -74,7 +74,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
 }
 
 pub fn load_png(path: &Path) -> Result<Image,~str> {
-    let mut reader = match file::open(path, io::Open, io::Read) {
+    let mut reader = match File::open_mode(path, io::Open, io::Read) {
         Some(r) => r,
         None => return Err(~"could not open file"),
     };
@@ -190,7 +190,7 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
 
 #[fixed_stack_segment]
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
-    let writer = match file::open(path, io::Create, io::Write) {
+    let writer = match File::open_mode(path, io::Open, io::Write) {
         Some(w) => @mut w as @mut io::Writer,
         None => return Err(~"could not open file")
     };
@@ -250,16 +250,15 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
-    use std::rt::io;
-    use std::rt::io::Reader;
-    use std::rt::io::file;
+    use std::io;
+    use std::io::File;
     use std::vec;
     use super::{ffi, load_png, store_png, RGB8, Image};
 
     #[test]
     #[fixed_stack_segment]
     fn test_valid_png() {
-        let mut reader = match file::open(& &"test.png", io::Open, io::Read) {
+        let mut reader = match File::open_mode(&Path::new("test.png"), io::Open, io::Read) {
             Some(r) => r,
             None => fail!("could not open file"),
         };
