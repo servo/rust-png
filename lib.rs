@@ -50,11 +50,11 @@ struct ImageData<'self> {
 
 #[fixed_stack_segment]
 pub fn is_png(image: &[u8]) -> bool {
-    do image.as_imm_buf |bytes, _len| {
+    image.as_imm_buf(|bytes, _len| {
         unsafe {
             ffi::png_sig_cmp(bytes, 0, 8) == 0
         }
-    }
+    })
 }
 
 pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
@@ -62,13 +62,13 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = cast::transmute(io_ptr);
         let len = length as uint;
-        do vec::raw::mut_buf_as_slice(data, len) |buf| {
+        vec::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::num::min(image_data.data.len()-image_data.offset, len);
             vec::raw::copy_memory(buf,
                                   image_data.data.slice(image_data.offset, image_data.offset+end_pos),
                                   end_pos);
             image_data.offset += end_pos;
-        }
+        });
     }
 }
 
@@ -148,9 +148,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
 
         let mut image_data = vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = vec::raw::to_mut_ptr(image_data);
-        let row_pointers: ~[*mut u8] = do vec::from_fn(height as uint) |idx| {
+        let row_pointers: ~[*mut u8] = vec::from_fn(height as uint, |idx| {
             ptr::mut_offset(image_buf, (((width * pixel_width) as uint) * idx) as int)
-        };
+        });
 
         ffi::png_read_image(png_ptr, vec::raw::to_ptr(row_pointers));
 
@@ -171,9 +171,9 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
-        do vec::raw::buf_as_slice(data, length as uint) |buf| {
+        vec::raw::buf_as_slice(data, length as uint, |buf| {
             writer.write(buf);
-        }
+        });
     }
 }
 
@@ -233,9 +233,9 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = vec::raw::to_ptr(img.pixels);
-        let row_pointers: ~[*u8] = do vec::from_fn(img.height as uint) |idx| {
+        let row_pointers: ~[*u8] = vec::from_fn(img.height as uint, |idx| {
             ptr::offset(image_buf, (((img.width * pixel_width) as uint) * idx) as int)
-        };
+        });
         ffi::png_set_rows(&*png_ptr, info_ptr, vec::raw::to_ptr(row_pointers));
 
         ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null());
