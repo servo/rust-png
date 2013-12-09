@@ -10,7 +10,6 @@
 #[link(name = "png",
        vers = "0.1")];
 #[crate_type = "lib"];
-#[feature(managed_boxes)];
 
 extern mod std;
 use std::cast;
@@ -171,32 +170,32 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
 pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: @@mut io::Writer = cast::transmute(io_ptr);
+        let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
         do vec::raw::buf_as_slice(data, length as uint) |buf| {
             writer.write(buf);
         }
-        cast::forget(writer);
     }
 }
 
 pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: @@mut io::Writer = cast::transmute(io_ptr);
+        let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
         writer.flush();
-        cast::forget(writer);
     }
 }
 
 #[fixed_stack_segment]
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
-    let writer = match File::open_mode(path, io::Open, io::Write) {
-        Some(w) => @mut w as @mut io::Writer,
+    let mut file = match File::open_mode(path, io::Open, io::Write) {
+        Some(file) => file,
         None => return Err(~"could not open file")
     };
 
-    // Box it again because an @Trait is too big to fit in a void*
-    let writer = @writer;
+    let mut writer = &mut file as &mut io::Writer;
+
+    // Box it again because a &Trait is too big to fit in a void*.
+    let writer = &mut writer;
 
     unsafe {
         let png_ptr = ffi::png_create_write_struct(ffi::png_get_header_ver(ptr::null()),
