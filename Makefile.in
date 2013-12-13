@@ -6,7 +6,7 @@ CFLAGS += -fPIC -I$(VPATH)/../libpng
 AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS ?=
-RUSTFLAGS += -L ../libpng
+RUSTFLAGS += -L ../libpng --opt-level=3
 
 .PHONY: all
 all:	librustpng.dummy
