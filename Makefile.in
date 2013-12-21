@@ -5,8 +5,7 @@ CXX ?= g++
 CFLAGS += -fPIC -I$(VPATH)/../libpng
 AR ?= ar
 RUSTC ?= rustc
-RUSTFLAGS ?=
-RUSTFLAGS += -L ../libpng --opt-level=3
+RUSTFLAGS := $(filter-out -O,$(RUSTFLAGS)) -L ../libpng --opt-level=3
 
 .PHONY: all
 all:	librustpng.dummy
