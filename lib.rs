@@ -11,6 +11,9 @@
        vers = "0.1")];
 #[crate_type = "lib"];
 
+#[cfg(test)]
+extern mod extra;
+
 extern mod std;
 use std::cast;
 use std::io;
@@ -25,6 +28,7 @@ pub mod ffi;
 #[link_args="-L. -lpng -lz -lshim"]
 extern {}
 
+#[deriving(Eq)]
 pub enum ColorType {
     K1, K2, K4, K8, K16,
     KA8, KA16,
@@ -249,15 +253,19 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
+    use extra::test::{bench, fmt_bench_samples};
     use std::io;
     use std::io::File;
     use std::vec;
-    use super::{ffi, load_png, store_png, RGB8, Image};
+
+    use super::{ffi, load_png, load_png_from_memory, store_png};
+    use super::{ColorType, RGB8, RGBA8, KA8, Image};
 
     #[test]
     #[fixed_stack_segment]
     fn test_valid_png() {
-        let mut reader = match File::open_mode(&Path::new("test.png"), io::Open, io::Read) {
+        let file = "test/servo-screenshot.png";
+        let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Some(r) => r,
             None => fail!("could not open file"),
         };
@@ -271,10 +279,49 @@ mod test {
         }
     }
 
+    fn load_rgba8(file: &'static str, w: u32, h: u32) {
+        match load_png(&Path::new(file)) {
+            Err(m) => fail!(m),
+            Ok(image) => {
+                assert_eq!(image.color_type, RGBA8);
+                assert_eq!(image.width, w);
+                assert_eq!(image.height, h);
+            }
+        }
+    }
+
     #[test]
     fn test_load() {
-        let res = load_png(&Path::new("test.png"));
-        assert!(res.is_ok());
+        load_rgba8("test/servo-screenshot.png", 831, 624);
+
+        test_store();
+        load_rgba8("test/store.png", 10, 10);
+    }
+
+    fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: ColorType) {
+        let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
+            Some(r) => r,
+            None => fail!("could not open '{}'", file)
+        };
+        let buf = reader.read_to_end();
+        let bs = bench::benchmark(|b| b.iter(|| {
+            match load_png_from_memory(buf) {
+                Err(m) => fail!(m),
+                Ok(image) => {
+                    assert_eq!(image.color_type, c);
+                    assert_eq!(image.width, w);
+                    assert_eq!(image.height, h);
+                }
+            }
+        }));
+        println!("libpng load '{}': {}", file, fmt_bench_samples(&bs));
+    }
+
+    #[test]
+    fn test_load_perf() {
+        bench_file_from_memory("test/servo-screenshot.png", 831, 624, RGBA8);
+        bench_file_from_memory("test/mozilla-dinosaur-head-logo.png", 1300, 929, RGBA8);
+        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, KA8);
     }
 
     #[test]
@@ -285,7 +332,7 @@ mod test {
             color_type: RGB8,
             pixels: vec::from_elem(10 * 10 * 3, 100u8),
         };
-        let res = store_png(&img, &Path::new("test_store.png"));
+        let res = store_png(&img, &Path::new("test/store.png"));
         assert!(res.is_ok());
     }
 }
