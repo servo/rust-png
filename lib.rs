@@ -7,9 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[link(name = "png",
-       vers = "0.1")];
-#[crate_type = "lib"];
+#[crate_id = "github.com/mozilla-servo/rust-png#png:0.1"];
 
 #[cfg(test)]
 extern mod extra;
@@ -23,10 +21,6 @@ use std::vec;
 use std::libc::{c_int, size_t};
 
 pub mod ffi;
-
-#[nolink]
-#[link_args="-L. -lpng -lz -lshim"]
-extern {}
 
 #[deriving(Eq)]
 pub enum ColorType {
@@ -47,18 +41,15 @@ pub struct Image {
 // This intermediate data structure is used to read
 // an image data from 'offset' position, and store it
 // to the data vector.
-struct ImageData<'self> {
-    data: &'self [u8],
+struct ImageData<'a> {
+    data: &'a [u8],
     offset: uint,
 }
 
-#[fixed_stack_segment]
 pub fn is_png(image: &[u8]) -> bool {
-    image.as_imm_buf(|bytes, _len| {
-        unsafe {
-            ffi::png_sig_cmp(bytes, 0, 8) == 0
-        }
-    })
+    unsafe {
+        ffi::png_sig_cmp(image.as_ptr(), 0, 8) == 0
+    }
 }
 
 pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
@@ -68,9 +59,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
         let len = length as uint;
         vec::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::num::min(image_data.data.len()-image_data.offset, len);
-            vec::raw::copy_memory(buf,
-                                  image_data.data.slice(image_data.offset, image_data.offset+end_pos),
-                                  end_pos);
+            buf.copy_memory(image_data.data.slice(image_data.offset, image_data.offset+end_pos));
             image_data.offset += end_pos;
         });
     }
@@ -85,7 +74,6 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
     load_png_from_memory(buf)
 }
 
-#[fixed_stack_segment]
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
     unsafe {
         let png_ptr = ffi::png_create_read_struct(ffi::png_get_header_ver(ptr::null()),
@@ -151,12 +139,12 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
         };
 
         let mut image_data = vec::from_elem((width * height * pixel_width) as uint, 0u8);
-        let image_buf = vec::raw::to_mut_ptr(image_data);
+        let image_buf = image_data.as_mut_ptr();
         let row_pointers: ~[*mut u8] = vec::from_fn(height as uint, |idx| {
             ptr::mut_offset(image_buf, (((width * pixel_width) as uint) * idx) as int)
         });
 
-        ffi::png_read_image(png_ptr, vec::raw::to_ptr(row_pointers));
+        ffi::png_read_image(png_ptr, row_pointers.as_ptr());
 
         let png_ptr: *ffi::png_struct = &*png_ptr;
         let info_ptr: *ffi::png_info = &*info_ptr;
@@ -189,7 +177,6 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     }
 }
 
-#[fixed_stack_segment]
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
     let mut file = match File::open_mode(path, io::Open, io::Write) {
         Some(file) => file,
@@ -236,11 +223,11 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
         ffi::png_set_IHDR(&*png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
-        let image_buf = vec::raw::to_ptr(img.pixels);
+        let image_buf = img.pixels.as_ptr();
         let row_pointers: ~[*u8] = vec::from_fn(img.height as uint, |idx| {
             ptr::offset(image_buf, (((img.width * pixel_width) as uint) * idx) as int)
         });
-        ffi::png_set_rows(&*png_ptr, info_ptr, vec::raw::to_ptr(row_pointers));
+        ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
 
         ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null());
 
@@ -262,7 +249,6 @@ mod test {
     use super::{ColorType, RGB8, RGBA8, KA8, Image};
 
     #[test]
-    #[fixed_stack_segment]
     fn test_valid_png() {
         let file = "test/servo-screenshot.png";
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
@@ -274,7 +260,7 @@ mod test {
         let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
-            let res = ffi::png_sig_cmp(vec::raw::to_ptr(buf), 0, 8);
+            let res = ffi::png_sig_cmp(buf.as_ptr(), 0, 8);
             assert!(res == 0);
         }
     }
