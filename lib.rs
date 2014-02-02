@@ -178,7 +178,7 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
 }
 
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
-    let mut file = match File::open_mode(path, io::Open, io::Write) {
+    let mut file = match File::create(path) {
         Some(file) => file,
         None => return Err(~"could not open file")
     };
