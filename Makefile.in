@@ -14,7 +14,7 @@ all:	librustpng.dummy
 	$(CC) $< -o $@ -c $(CFLAGS)
 
 librustpng.dummy: lib.rs libshim.a
-	$(RUSTC) $(RUSTFLAGS) $< --lib --out-dir .
+	$(RUSTC) $(RUSTFLAGS) $< --crate-type=lib --out-dir .
 	touch $@
 
 rustpng-test: lib.rs libshim.a
