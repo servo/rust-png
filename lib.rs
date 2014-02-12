@@ -67,10 +67,13 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
 
 pub fn load_png(path: &Path) -> Result<Image,~str> {
     let mut reader = match File::open_mode(path, io::Open, io::Read) {
-        Some(r) => r,
-        None => return Err(~"could not open file"),
+        Ok(r) => r,
+        Err(e) => return Err(format!("could not open file: {}", e.desc)),
     };
-    let buf = reader.read_to_end();
+    let buf = match reader.read_to_end() {
+        Ok(b) => b,
+        Err(e) => return Err(format!("could not read file: {}", e.desc))
+    };
     load_png_from_memory(buf)
 }
 
@@ -164,7 +167,10 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
         vec::raw::buf_as_slice(data, length as uint, |buf| {
-            writer.write(buf);
+            match writer.write(buf) {
+                Err(e) => fail!("{}", e.desc),
+                _ => {}
+            }
         });
     }
 }
@@ -173,14 +179,17 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
-        writer.flush();
+        match writer.flush() {
+            Err(e) => fail!("{}", e.desc),
+            _ => {}
+        }
     }
 }
 
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
     let mut file = match File::create(path) {
-        Some(file) => file,
-        None => return Err(~"could not open file")
+        Ok(file) => file,
+        Err(_) => return Err(~"could not open file")
     };
 
     let mut writer = &mut file as &mut io::Writer;
@@ -252,8 +261,8 @@ mod test {
     fn test_valid_png() {
         let file = "test/servo-screenshot.png";
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
-            Some(r) => r,
-            None => fail!("could not open file"),
+            Ok(r) => r,
+            Err(e) => fail!(e.desc),
         };
 
         let mut buf = vec::from_elem(1024, 0u8);
@@ -286,10 +295,13 @@ mod test {
 
     fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: ColorType) {
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
-            Some(r) => r,
-            None => fail!("could not open '{}'", file)
+            Ok(r) => r,
+            Err(e) => fail!("could not open '{}': {}", file, e.desc)
         };
-        let buf = reader.read_to_end();
+        let buf = match reader.read_to_end() {
+            Ok(b) => b,
+            Err(e) => fail!(e)
+        };
         let bs = bench::benchmark(|b| b.iter(|| {
             match load_png_from_memory(buf) {
                 Err(m) => fail!(m),

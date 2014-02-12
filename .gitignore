@@ -2,6 +2,7 @@
 *.o
 *.so
 *.dylib
+*.rlib
 *.dSYM
 *-test
 /Makefile
