@@ -249,7 +249,9 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
-    use extra::test::{bench, fmt_bench_samples};
+    extern crate test;
+    use self::test::bench;
+    use self::test::fmt_bench_samples;
     use std::io;
     use std::io::File;
     use std::vec;
