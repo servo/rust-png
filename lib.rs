@@ -10,9 +10,9 @@
 #[crate_id = "github.com/mozilla-servo/rust-png#png:0.1"];
 
 #[cfg(test)]
-extern mod extra;
+extern crate extra;
 
-extern mod std;
+extern crate std;
 use std::cast;
 use std::io;
 use std::io::File;
@@ -58,7 +58,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
         let image_data: &mut ImageData = cast::transmute(io_ptr);
         let len = length as uint;
         vec::raw::mut_buf_as_slice(data, len, |buf| {
-            let end_pos = std::num::min(image_data.data.len()-image_data.offset, len);
+            let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
             buf.copy_memory(image_data.data.slice(image_data.offset, image_data.offset+end_pos));
             image_data.offset += end_pos;
         });
@@ -144,7 +144,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
         let mut image_data = vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = image_data.as_mut_ptr();
         let row_pointers: ~[*mut u8] = vec::from_fn(height as uint, |idx| {
-            ptr::mut_offset(image_buf, (((width * pixel_width) as uint) * idx) as int)
+            image_buf.offset((((width * pixel_width) as uint) * idx) as int)
         });
 
         ffi::png_read_image(png_ptr, row_pointers.as_ptr());
@@ -188,8 +188,8 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
 
 pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
     let mut file = match File::create(path) {
-        Ok(file) => file,
-        Err(_) => return Err(~"could not open file")
+        Ok(f) => f,
+        Err(e) => return Err(format!("{}", e))
     };
 
     let mut writer = &mut file as &mut io::Writer;
@@ -234,7 +234,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
         let image_buf = img.pixels.as_ptr();
         let row_pointers: ~[*u8] = vec::from_fn(img.height as uint, |idx| {
-            ptr::offset(image_buf, (((img.width * pixel_width) as uint) * idx) as int)
+            image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
 
@@ -249,7 +249,9 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
 
 #[cfg(test)]
 mod test {
-    use extra::test::{bench, fmt_bench_samples};
+    extern crate test;
+    use self::test::bench;
+    use self::test::fmt_bench_samples;
     use std::io;
     use std::io::File;
     use std::vec;
