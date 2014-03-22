@@ -17,7 +17,7 @@ use std::cast;
 use std::io;
 use std::io::File;
 use std::ptr;
-use std::vec;
+use std::slice;
 use std::libc::{c_int, size_t};
 
 pub mod ffi;
@@ -57,7 +57,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = cast::transmute(io_ptr);
         let len = length as uint;
-        vec::raw::mut_buf_as_slice(data, len, |buf| {
+        slice::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
             buf.copy_memory(image_data.data.slice(image_data.offset, image_data.offset+end_pos));
             image_data.offset += end_pos;
@@ -141,9 +141,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
             _ => fail!(~"color type not supported"),
         };
 
-        let mut image_data = vec::from_elem((width * height * pixel_width) as uint, 0u8);
+        let mut image_data = slice::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = image_data.as_mut_ptr();
-        let row_pointers: ~[*mut u8] = vec::from_fn(height as uint, |idx| {
+        let row_pointers: ~[*mut u8] = slice::from_fn(height as uint, |idx| {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
         });
 
@@ -166,7 +166,7 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
-        vec::raw::buf_as_slice(data, length as uint, |buf| {
+        slice::raw::buf_as_slice(data, length as uint, |buf| {
             match writer.write(buf) {
                 Err(e) => fail!("{}", e.desc),
                 _ => {}
@@ -233,7 +233,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = img.pixels.as_ptr();
-        let row_pointers: ~[*u8] = vec::from_fn(img.height as uint, |idx| {
+        let row_pointers: ~[*u8] = slice::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
@@ -254,7 +254,7 @@ mod test {
     use self::test::fmt_bench_samples;
     use std::io;
     use std::io::File;
-    use std::vec;
+    use std::slice;
 
     use super::{ffi, load_png, load_png_from_memory, store_png};
     use super::{ColorType, RGB8, RGBA8, KA8, Image};
@@ -267,7 +267,7 @@ mod test {
             Err(e) => fail!(e.desc),
         };
 
-        let mut buf = vec::from_elem(1024, 0u8);
+        let mut buf = slice::from_elem(1024, 0u8);
         let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
@@ -330,7 +330,7 @@ mod test {
             width: 10,
             height: 10,
             color_type: RGB8,
-            pixels: vec::from_elem(10 * 10 * 3, 100u8),
+            pixels: slice::from_elem(10 * 10 * 3, 100u8),
         };
         let res = store_png(&img, &Path::new("test/store.png"));
         assert!(res.is_ok());
