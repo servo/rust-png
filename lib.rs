@@ -12,9 +12,6 @@
 #[crate_type = "dylib"];
 #[crate_type = "rlib"];
 
-#[cfg(test)]
-extern crate extra;
-
 extern crate std;
 use std::cast;
 use std::io;
@@ -25,7 +22,7 @@ use std::libc::{c_int, size_t};
 
 pub mod ffi;
 
-#[deriving(Eq)]
+#[deriving(Eq,Show)]
 pub enum ColorType {
     K1, K2, K4, K8, K16,
     KA8, KA16,
