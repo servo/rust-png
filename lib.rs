@@ -32,10 +32,10 @@ pub enum ColorType {
 }
 
 pub struct Image {
-    width: u32,
-    height: u32,
-    color_type: ColorType,
-    pixels: ~[u8],
+    pub width: u32,
+    pub height: u32,
+    pub color_type: ColorType,
+    pub pixels: ~[u8],
 }
 
 // This intermediate data structure is used to read
