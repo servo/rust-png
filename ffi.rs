@@ -9,7 +9,7 @@
 
 #![allow(non_camel_case_types)]
 
-use std::libc::{c_int, size_t, c_void, c_char};
+use libc::{c_int, size_t, c_void, c_char};
 
 pub static TRANSFORM_IDENTITY: c_int = 0;
 

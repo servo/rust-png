@@ -12,13 +12,15 @@
 #![crate_type = "dylib"]
 #![crate_type = "rlib"]
 
+extern crate libc;
 extern crate std;
+
+use libc::{c_int, size_t};
 use std::cast;
 use std::io;
 use std::io::File;
 use std::ptr;
 use std::slice;
-use std::libc::{c_int, size_t};
 
 pub mod ffi;
 
