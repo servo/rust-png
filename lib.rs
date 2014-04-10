@@ -7,18 +7,20 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[crate_id = "github.com/mozilla-servo/rust-png#png:0.1"];
-#[crate_type = "lib"];
-#[crate_type = "dylib"];
-#[crate_type = "rlib"];
+#![crate_id = "github.com/mozilla-servo/rust-png#png:0.1"]
+#![crate_type = "lib"]
+#![crate_type = "dylib"]
+#![crate_type = "rlib"]
 
+extern crate libc;
 extern crate std;
+
+use libc::{c_int, size_t};
 use std::cast;
 use std::io;
 use std::io::File;
 use std::ptr;
 use std::slice;
-use std::libc::{c_int, size_t};
 
 pub mod ffi;
 
@@ -74,7 +76,7 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
         Ok(b) => b,
         Err(e) => return Err(format!("could not read file: {}", e.desc))
     };
-    load_png_from_memory(buf)
+    load_png_from_memory(buf.as_slice())
 }
 
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
@@ -305,7 +307,7 @@ mod test {
             Err(e) => fail!(e)
         };
         let bs = bench::benchmark(|b| b.iter(|| {
-            match load_png_from_memory(buf) {
+            match load_png_from_memory(buf.as_slice()) {
                 Err(m) => fail!(m),
                 Ok(image) => {
                     assert_eq!(image.color_type, c);
