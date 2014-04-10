@@ -76,7 +76,7 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
         Ok(b) => b,
         Err(e) => return Err(format!("could not read file: {}", e.desc))
     };
-    load_png_from_memory(buf)
+    load_png_from_memory(buf.as_slice())
 }
 
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
@@ -307,7 +307,7 @@ mod test {
             Err(e) => fail!(e)
         };
         let bs = bench::benchmark(|b| b.iter(|| {
-            match load_png_from_memory(buf) {
+            match load_png_from_memory(buf.as_slice()) {
                 Err(m) => fail!(m),
                 Ok(image) => {
                     assert_eq!(image.color_type, c);
