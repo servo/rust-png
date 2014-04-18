@@ -134,7 +134,10 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
         ffi::png_set_interlace_handling(png_ptr);
         ffi::png_read_update_info(png_ptr, info_ptr);
 
-        let (color_type, pixel_width) = match (color_type as c_int, bit_depth) {
+        let updated_color_type = ffi::png_get_bit_depth(&*png_ptr, &*info_ptr);
+        let updated_bit_depth = ffi::png_get_color_type(&*png_ptr, &*info_ptr);
+
+        let (color_type, pixel_width) = match (updated_color_type as c_int, updated_bit_depth) {
             (ffi::COLOR_TYPE_RGB, 8) |
             (ffi::COLOR_TYPE_RGBA, 8) |
             (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
