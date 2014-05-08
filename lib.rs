@@ -86,20 +86,20 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
                                                   ptr::null(),
                                                   ptr::null());
         if png_ptr.is_null() {
-            return Err(~"could not create read struct");
+            return Err("could not create read struct".to_owned());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_read_struct(&png_ptr, ptr::null(), ptr::null());
-            return Err(~"could not create info struct");
+            return Err("could not create info struct".to_owned());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_read_struct(&png_ptr, &info_ptr, ptr::null());
-            return Err(~"error reading png");
+            return Err("error reading png".to_owned());
         }
 
         let mut image_data = ImageData {
@@ -143,7 +143,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
             (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
             (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
             (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
-            _ => fail!(~"color type not supported"),
+            _ => fail!("color type not supported"),
         };
 
         let mut image_data = slice::from_elem((width * height * pixel_width) as uint, 0u8);
@@ -208,20 +208,20 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                                                    ptr::null(),
                                                    ptr::null());
         if png_ptr.is_null() {
-            return Err(~"could not create write struct");
+            return Err("could not create write struct".to_owned());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_write_struct(&png_ptr, ptr::null());
-            return Err(~"could not create info struct");
+            return Err("could not create info struct".to_owned());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
-            return Err(~"error writing png");
+            return Err("error writing png".to_owned());
         }
 
         ffi::png_set_write_fn(png_ptr, cast::transmute(writer), write_data, flush_data);
