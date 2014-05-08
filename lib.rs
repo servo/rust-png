@@ -37,7 +37,7 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub color_type: ColorType,
-    pub pixels: ~[u8],
+    pub pixels: Vec<u8>,
 }
 
 // This intermediate data structure is used to read
@@ -146,9 +146,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
             _ => fail!("color type not supported"),
         };
 
-        let mut image_data = slice::from_elem((width * height * pixel_width) as uint, 0u8);
+        let mut image_data = Vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = image_data.as_mut_ptr();
-        let row_pointers: ~[*mut u8] = slice::from_fn(height as uint, |idx| {
+        let row_pointers: Vec<*mut u8> = Vec::from_fn(height as uint, |idx| {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
         });
 
@@ -238,7 +238,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = img.pixels.as_ptr();
-        let row_pointers: ~[*u8] = slice::from_fn(img.height as uint, |idx| {
+        let row_pointers: Vec<*u8> = Vec::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
@@ -259,7 +259,6 @@ mod test {
     use self::test::fmt_bench_samples;
     use std::io;
     use std::io::File;
-    use std::slice;
 
     use super::{ffi, load_png, load_png_from_memory, store_png};
     use super::{ColorType, RGB8, RGBA8, KA8, Image};
@@ -272,7 +271,7 @@ mod test {
             Err(e) => fail!(e.desc),
         };
 
-        let mut buf = slice::from_elem(1024, 0u8);
+        let mut buf = Vec::from_elem(1024, 0u8);
         let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
@@ -335,7 +334,7 @@ mod test {
             width: 10,
             height: 10,
             color_type: RGB8,
-            pixels: slice::from_elem(10 * 10 * 3, 100u8),
+            pixels: Vec::from_elem(10 * 10 * 3, 100u8),
         };
         let res = store_png(&img, &Path::new("test/store.png"));
         assert!(res.is_ok());
