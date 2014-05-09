@@ -37,7 +37,7 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub color_type: ColorType,
-    pub pixels: ~[u8],
+    pub pixels: Vec<u8>,
 }
 
 // This intermediate data structure is used to read
@@ -86,20 +86,20 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
                                                   ptr::null(),
                                                   ptr::null());
         if png_ptr.is_null() {
-            return Err(~"could not create read struct");
+            return Err("could not create read struct".to_owned());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_read_struct(&png_ptr, ptr::null(), ptr::null());
-            return Err(~"could not create info struct");
+            return Err("could not create info struct".to_owned());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_read_struct(&png_ptr, &info_ptr, ptr::null());
-            return Err(~"error reading png");
+            return Err("error reading png".to_owned());
         }
 
         let mut image_data = ImageData {
@@ -143,12 +143,12 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
             (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
             (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
             (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
-            _ => fail!(~"color type not supported"),
+            _ => fail!("color type not supported"),
         };
 
-        let mut image_data = slice::from_elem((width * height * pixel_width) as uint, 0u8);
+        let mut image_data = Vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = image_data.as_mut_ptr();
-        let row_pointers: ~[*mut u8] = slice::from_fn(height as uint, |idx| {
+        let row_pointers: Vec<*mut u8> = Vec::from_fn(height as uint, |idx| {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
         });
 
@@ -208,20 +208,20 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                                                    ptr::null(),
                                                    ptr::null());
         if png_ptr.is_null() {
-            return Err(~"could not create write struct");
+            return Err("could not create write struct".to_owned());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_write_struct(&png_ptr, ptr::null());
-            return Err(~"could not create info struct");
+            return Err("could not create info struct".to_owned());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
-            return Err(~"error writing png");
+            return Err("error writing png".to_owned());
         }
 
         ffi::png_set_write_fn(png_ptr, cast::transmute(writer), write_data, flush_data);
@@ -238,7 +238,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = img.pixels.as_ptr();
-        let row_pointers: ~[*u8] = slice::from_fn(img.height as uint, |idx| {
+        let row_pointers: Vec<*u8> = Vec::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
@@ -259,7 +259,6 @@ mod test {
     use self::test::fmt_bench_samples;
     use std::io;
     use std::io::File;
-    use std::slice;
 
     use super::{ffi, load_png, load_png_from_memory, store_png};
     use super::{ColorType, RGB8, RGBA8, KA8, Image};
@@ -272,7 +271,7 @@ mod test {
             Err(e) => fail!(e.desc),
         };
 
-        let mut buf = slice::from_elem(1024, 0u8);
+        let mut buf = Vec::from_elem(1024, 0u8);
         let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
@@ -335,7 +334,7 @@ mod test {
             width: 10,
             height: 10,
             color_type: RGB8,
-            pixels: slice::from_elem(10 * 10 * 3, 100u8),
+            pixels: Vec::from_elem(10 * 10 * 3, 100u8),
         };
         let res = store_png(&img, &Path::new("test/store.png"));
         assert!(res.is_ok());
