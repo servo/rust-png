@@ -6,6 +6,7 @@ CFLAGS += -fPIC -I$(VPATH)/../libpng
 AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS := $(filter-out -O,$(RUSTFLAGS)) -L ../libpng --opt-level=3
+EXT_DEPS ?=
 
 .PHONY: all
 all:	librustpng.dummy
@@ -13,7 +14,7 @@ all:	librustpng.dummy
 %.o: %.c
 	$(CC) $< -o $@ -c $(CFLAGS)
 
-librustpng.dummy: lib.rs libshim.a
+librustpng.dummy: lib.rs libshim.a $(EXT_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
 	touch $@
 
