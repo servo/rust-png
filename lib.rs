@@ -16,7 +16,7 @@ extern crate libc;
 extern crate std;
 
 use libc::{c_int, size_t};
-use std::cast;
+use std::mem;
 use std::io;
 use std::io::File;
 use std::ptr;
@@ -57,7 +57,7 @@ pub fn is_png(image: &[u8]) -> bool {
 pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let image_data: &mut ImageData = cast::transmute(io_ptr);
+        let image_data: &mut ImageData = mem::transmute(io_ptr);
         let len = length as uint;
         slice::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
@@ -67,7 +67,7 @@ pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t
     }
 }
 
-pub fn load_png(path: &Path) -> Result<Image,~str> {
+pub fn load_png(path: &Path) -> Result<Image,String> {
     let mut reader = match File::open_mode(path, io::Open, io::Read) {
         Ok(r) => r,
         Err(e) => return Err(format!("could not open file: {}", e.desc)),
@@ -79,27 +79,27 @@ pub fn load_png(path: &Path) -> Result<Image,~str> {
     load_png_from_memory(buf.as_slice())
 }
 
-pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
+pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
     unsafe {
         let png_ptr = ffi::png_create_read_struct(ffi::png_get_header_ver(ptr::null()),
                                                   ptr::null(),
                                                   ptr::null(),
                                                   ptr::null());
         if png_ptr.is_null() {
-            return Err("could not create read struct".to_owned());
+            return Err("could not create read struct".to_string());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_read_struct(&png_ptr, ptr::null(), ptr::null());
-            return Err("could not create info struct".to_owned());
+            return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_read_struct(&png_ptr, &info_ptr, ptr::null());
-            return Err("error reading png".to_owned());
+            return Err("error reading png".to_string());
         }
 
         let mut image_data = ImageData {
@@ -107,7 +107,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
             offset: 0,
         };
 
-        ffi::png_set_read_fn(png_ptr, cast::transmute(&mut image_data), read_data);
+        ffi::png_set_read_fn(png_ptr, mem::transmute(&mut image_data), read_data);
         ffi::png_read_info(png_ptr, info_ptr);
 
         let width = ffi::png_get_image_width(&*png_ptr, &*info_ptr);
@@ -170,7 +170,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,~str> {
 pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
+        let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         slice::raw::buf_as_slice(data, length as uint, |buf| {
             match writer.write(buf) {
                 Err(e) => fail!("{}", e.desc),
@@ -183,7 +183,7 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
 pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
-        let writer: &mut &mut io::Writer = cast::transmute(io_ptr);
+        let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         match writer.flush() {
             Err(e) => fail!("{}", e.desc),
             _ => {}
@@ -191,7 +191,7 @@ pub extern fn flush_data(png_ptr: *ffi::png_struct) {
     }
 }
 
-pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
+pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
     let mut file = match File::create(path) {
         Ok(f) => f,
         Err(e) => return Err(format!("{}", e))
@@ -208,23 +208,23 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),~str> {
                                                    ptr::null(),
                                                    ptr::null());
         if png_ptr.is_null() {
-            return Err("could not create write struct".to_owned());
+            return Err("could not create write struct".to_string());
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             ffi::png_destroy_write_struct(&png_ptr, ptr::null());
-            return Err("could not create info struct".to_owned());
+            return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
             let png_ptr: *ffi::png_struct = &*png_ptr;
             let info_ptr: *ffi::png_info = &*info_ptr;
             ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
-            return Err("error writing png".to_owned());
+            return Err("error writing png".to_string());
         }
 
-        ffi::png_set_write_fn(png_ptr, cast::transmute(writer), write_data, flush_data);
+        ffi::png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
 
         let (bit_depth, color_type, pixel_width) = match img.color_type {
             RGB8 => (8, ffi::COLOR_TYPE_RGB, 3),
