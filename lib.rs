@@ -24,7 +24,7 @@ use std::slice;
 
 pub mod ffi;
 
-#[deriving(Eq,Show)]
+#[deriving(PartialEq,Eq,Show)]
 pub enum ColorType {
     K1, K2, K4, K8, K16,
     KA8, KA16,
