@@ -54,7 +54,7 @@ pub fn is_png(image: &[u8]) -> bool {
     }
 }
 
-pub extern fn read_data(png_ptr: *ffi::png_struct, data: *mut u8, length: size_t) {
+pub extern fn read_data(png_ptr: *const ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = mem::transmute(io_ptr);
@@ -90,14 +90,14 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
-            let png_ptr: *ffi::png_struct = &*png_ptr;
+            let png_ptr: *const ffi::png_struct = &*png_ptr;
             ffi::png_destroy_read_struct(&png_ptr, ptr::null(), ptr::null());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
-            let png_ptr: *ffi::png_struct = &*png_ptr;
-            let info_ptr: *ffi::png_info = &*info_ptr;
+            let png_ptr: *const ffi::png_struct = &*png_ptr;
+            let info_ptr: *const ffi::png_info = &*info_ptr;
             ffi::png_destroy_read_struct(&png_ptr, &info_ptr, ptr::null());
             return Err("error reading png".to_string());
         }
@@ -154,8 +154,8 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 
         ffi::png_read_image(png_ptr, row_pointers.as_ptr());
 
-        let png_ptr: *ffi::png_struct = &*png_ptr;
-        let info_ptr: *ffi::png_info = &*info_ptr;
+        let png_ptr: *const ffi::png_struct = &*png_ptr;
+        let info_ptr: *const ffi::png_info = &*info_ptr;
         ffi::png_destroy_read_struct(&png_ptr, &info_ptr, ptr::null());
 
         Ok(Image {
@@ -167,7 +167,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
     }
 }
 
-pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
+pub extern fn write_data(png_ptr: *const ffi::png_struct, data: *const u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
@@ -180,7 +180,7 @@ pub extern fn write_data(png_ptr: *ffi::png_struct, data: *u8, length: size_t) {
     }
 }
 
-pub extern fn flush_data(png_ptr: *ffi::png_struct) {
+pub extern fn flush_data(png_ptr: *const ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
@@ -212,14 +212,14 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
         }
         let info_ptr = ffi::png_create_info_struct(&*png_ptr);
         if info_ptr.is_null() {
-            let png_ptr: *ffi::png_struct = &*png_ptr;
+            let png_ptr: *const ffi::png_struct = &*png_ptr;
             ffi::png_destroy_write_struct(&png_ptr, ptr::null());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
-            let png_ptr: *ffi::png_struct = &*png_ptr;
-            let info_ptr: *ffi::png_info = &*info_ptr;
+            let png_ptr: *const ffi::png_struct = &*png_ptr;
+            let info_ptr: *const ffi::png_info = &*info_ptr;
             ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
             return Err("error writing png".to_string());
         }
@@ -238,15 +238,15 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = img.pixels.as_ptr();
-        let row_pointers: Vec<*u8> = Vec::from_fn(img.height as uint, |idx| {
+        let row_pointers: Vec<*const u8> = Vec::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
 
         ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null());
 
-        let png_ptr: *ffi::png_struct = &*png_ptr;
-        let info_ptr: *ffi::png_info = &*info_ptr;
+        let png_ptr: *const ffi::png_struct = &*png_ptr;
+        let info_ptr: *const ffi::png_info = &*info_ptr;
         ffi::png_destroy_write_struct(&png_ptr, &info_ptr);
     }
     Ok(())
