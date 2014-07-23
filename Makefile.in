@@ -9,23 +9,23 @@ RUSTFLAGS := $(filter-out -O,$(RUSTFLAGS)) -L ../libpng --opt-level=3
 EXT_DEPS ?=
 
 .PHONY: all
-all:	librustpng.dummy
+all:	libpng-servo.dummy
 
 %.o: %.c
 	$(CC) $< -o $@ -c $(CFLAGS)
 
-librustpng.dummy: lib.rs libshim.a $(EXT_DEPS)
-	$(RUSTC) $(RUSTFLAGS) $< --out-dir .
+libpng-servo.dummy: lib.rs libshim.a $(EXT_DEPS)
+	$(RUSTC) $(RUSTFLAGS) $< --out-dir . -C extra-filename=-servo
 	touch $@
 
-rustpng-test: lib.rs libshim.a
+png-test: lib.rs libshim.a
 	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
 
 libshim.a: shim.o
 	$(AR) rcs libshim.a shim.o
 
-check: rustpng-test
-	./rustpng-test
+check: png-test
+	./png-test
 
 .PHONY: clean
 clean:
