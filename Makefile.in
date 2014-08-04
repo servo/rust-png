@@ -7,6 +7,9 @@ AR ?= ar
 RUSTC ?= rustc
 RUSTFLAGS := $(filter-out -O,$(RUSTFLAGS)) -L ../libpng --opt-level=3
 EXT_DEPS ?=
+RUSTDOC ?= rustdoc
+RUSTDOC_FLAGS ?=
+RUSTDOC_TARGET ?= doc
 
 .PHONY: all
 all:	libpng-servo.dummy
@@ -23,6 +26,12 @@ png-test: lib.rs libshim.a
 
 libshim.a: shim.o
 	$(AR) rcs libshim.a shim.o
+
+.PHONY: doc
+doc: $(RUSTDOC_TARGET)/png/index.html
+
+$(RUSTDOC_TARGET)/png/index.html: lib.rs $(RUST_SRC) $(EXT_DEPS)
+	$(RUSTDOC) $(RUSTDOC_FLAGS) $< -o $(RUSTDOC_TARGET)
 
 check: png-test
 	./png-test
