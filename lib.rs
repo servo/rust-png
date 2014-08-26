@@ -22,20 +22,18 @@ use std::slice;
 
 pub mod ffi;
 
-#[deriving(PartialEq,Eq,Show)]
-pub enum ColorType {
-    K1, K2, K4, K8, K16,
-    KA8, KA16,
-    Pal1, Pal2, Pal4, Pal8,
-    RGB8, RGB16,
-    RGBA8, RGBA16,
+
+pub enum PixelsByColorType {
+    K8(Vec<u8>),
+    KA8(Vec<u8>),
+    RGB8(Vec<u8>),
+    RGBA8(Vec<u8>),
 }
 
 pub struct Image {
     pub width: u32,
     pub height: u32,
-    pub color_type: ColorType,
-    pub pixels: Vec<u8>,
+    pub pixels: PixelsByColorType,
 }
 
 // This intermediate data structure is used to read
@@ -154,8 +152,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
         Ok(Image {
             width: width,
             height: height,
-            color_type: color_type,
-            pixels: image_data,
+            pixels: color_type(image_data),
         })
     }
 }
@@ -216,18 +213,16 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
 
         ffi::png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
 
-        let (bit_depth, color_type, pixel_width) = match img.color_type {
-            RGB8 => (8, ffi::COLOR_TYPE_RGB, 3),
-            RGBA8 => (8, ffi::COLOR_TYPE_RGBA, 4),
-            K8 => (8, ffi::COLOR_TYPE_GRAY, 1),
-            KA8 => (8, ffi::COLOR_TYPE_GA, 2),
-            _ => fail!("bad color type"),
+        let (bit_depth, color_type, pixel_width, image_buf) = match img.pixels {
+            RGB8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGB, 3, pixels.as_mut_ptr()),
+            RGBA8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGBA, 4, pixels.as_mut_ptr()),
+            K8(ref mut pixels) => (8, ffi::COLOR_TYPE_GRAY, 1, pixels.as_mut_ptr()),
+            KA8(ref mut pixels) => (8, ffi::COLOR_TYPE_GA, 2, pixels.as_mut_ptr()),
         };
 
         ffi::png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
-        let image_buf = img.pixels.as_mut_ptr();
         let mut row_pointers: Vec<*mut u8> = Vec::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
@@ -249,7 +244,7 @@ mod test {
     use std::io::File;
 
     use super::{ffi, load_png, load_png_from_memory, store_png};
-    use super::{ColorType, RGB8, RGBA8, KA8, Image};
+    use super::{RGB8, RGBA8, K8, KA8, Image};
 
     #[test]
     fn test_valid_png() {
@@ -272,9 +267,12 @@ mod test {
         match load_png(&Path::new(file)) {
             Err(m) => fail!(m),
             Ok(image) => {
-                assert_eq!(image.color_type, RGBA8);
                 assert_eq!(image.width, w);
                 assert_eq!(image.height, h);
+                match image.pixels {
+                    RGBA8(_) => {}
+                    _ => fail!("Expected RGBA8")
+                }
             }
         }
     }
@@ -287,7 +285,7 @@ mod test {
         load_rgba8("test/store.png", 10, 10);
     }
 
-    fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: ColorType) {
+    fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: &'static str) {
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Ok(r) => r,
             Err(e) => fail!("could not open '{}': {}", file, e.desc)
@@ -300,7 +298,13 @@ mod test {
             match load_png_from_memory(buf.as_slice()) {
                 Err(m) => fail!(m),
                 Ok(image) => {
-                    assert_eq!(image.color_type, c);
+                    let color_type = match image.pixels {
+                        K8(_) => "K8",
+                        KA8(_) => "KA8",
+                        RGB8(_) => "RGB8",
+                        RGBA8(_) => "RGBA8",
+                    };
+                    assert_eq!(color_type, c);
                     assert_eq!(image.width, w);
                     assert_eq!(image.height, h);
                 }
@@ -311,9 +315,9 @@ mod test {
 
     #[test]
     fn test_load_perf() {
-        bench_file_from_memory("test/servo-screenshot.png", 831, 624, RGBA8);
-        bench_file_from_memory("test/mozilla-dinosaur-head-logo.png", 1300, 929, RGBA8);
-        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, KA8);
+        bench_file_from_memory("test/servo-screenshot.png", 831, 624, "RGBA8");
+        bench_file_from_memory("test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
+        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, "KA8");
     }
 
     #[test]
@@ -321,8 +325,7 @@ mod test {
         let mut img = Image {
             width: 10,
             height: 10,
-            color_type: RGB8,
-            pixels: Vec::from_elem(10 * 10 * 3, 100u8),
+            pixels: RGB8(Vec::from_elem(10 * 10 * 3, 100u8)),
         };
         let res = store_png(&mut img, &Path::new("test/store.png"));
         assert!(res.is_ok());
