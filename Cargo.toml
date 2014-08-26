@@ -1,0 +1,11 @@
+[package]
+
+name = "png"
+version = "0.1.0"
+authors = ["The Servo Project Developers"]
+
+build = "make -f makefile.cargo"
+
+[dependencies.png-sys]
+
+git = "https://github.com/servo/libpng"

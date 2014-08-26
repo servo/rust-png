@@ -14,14 +14,14 @@ RUSTDOC_TARGET ?= doc
 .PHONY: all
 all:	libpng-servo.dummy
 
-%.o: %.c
+shim.o: src/shim.c
 	$(CC) $< -o $@ -c $(CFLAGS)
 
-libpng-servo.dummy: lib.rs libshim.a $(EXT_DEPS)
+libpng-servo.dummy: src/lib.rs libshim.a $(EXT_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $< --out-dir . -C extra-filename=-servo
 	touch $@
 
-png-test: lib.rs libshim.a
+png-test: src/lib.rs libshim.a
 	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
 
 libshim.a: shim.o
@@ -30,7 +30,7 @@ libshim.a: shim.o
 .PHONY: doc
 doc: $(RUSTDOC_TARGET)/png/index.html
 
-$(RUSTDOC_TARGET)/png/index.html: lib.rs $(RUST_SRC) $(EXT_DEPS)
+$(RUSTDOC_TARGET)/png/index.html: src/lib.rs $(RUST_SRC) $(EXT_DEPS)
 	$(RUSTDOC) $(RUSTDOC_FLAGS) $< -o $(RUSTDOC_TARGET)
 
 check: png-test

@@ -8,3 +8,5 @@
 /Makefile
 /test_store.png
 /doc
+/target
+/Cargo.lock

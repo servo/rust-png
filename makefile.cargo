@@ -1,0 +1,16 @@
+CC ?= gcc
+CXX ?= g++
+AR ?= ar
+
+PNG_OUTDIR = $(shell find $(OUT_DIR)/.. -name 'png-sys-*' -type d)
+
+CFLAGS += -fPIC -I$(PNG_OUTDIR)
+
+.PHONY: all
+all: $(OUT_DIR)/libshim.a
+
+$(OUT_DIR)/shim.o: src/shim.c
+	$(CC) $< -o $@ -c $(CFLAGS)
+
+$(OUT_DIR)/libshim.a: $(OUT_DIR)/shim.o
+	$(AR) rcs $@ $(OUT_DIR)/shim.o
