@@ -9,3 +9,4 @@ build = "make -f makefile.cargo"
 [dependencies.png-sys]
 
 git = "https://github.com/servo/libpng"
+branch = "servo"
