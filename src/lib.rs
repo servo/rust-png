@@ -105,22 +105,23 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 
         let width = ffi::png_get_image_width(png_ptr, info_ptr);
         let height = ffi::png_get_image_height(png_ptr, info_ptr);
-        let bit_depth = ffi::png_get_bit_depth(png_ptr, info_ptr);
         let color_type = ffi::png_get_color_type(png_ptr, info_ptr);
 
-        // we convert palette to rgb
-        if color_type as c_int == ffi::COLOR_TYPE_PALETTE {
-            ffi::png_set_palette_to_rgb(png_ptr);
+        // convert palette and grayscale to rgb
+        match color_type as c_int {
+            ffi::COLOR_TYPE_PALETTE => {
+                ffi::png_set_palette_to_rgb(png_ptr);
+            }
+            ffi::COLOR_TYPE_GRAY | ffi::COLOR_TYPE_GRAY_ALPHA => {
+                ffi::png_set_gray_to_rgb(png_ptr);
+            }
+            _ => {}
         }
-        // make each channel use 1 byte
-        if (color_type as c_int == ffi::COLOR_TYPE_GRAY) && (bit_depth < 8) {
-            ffi::png_set_expand_gray_1_2_4_to_8(png_ptr);
-        }
-        // add alpha channels to palette and rgb
-        if (color_type as c_int == ffi::COLOR_TYPE_PALETTE) ||
-            (color_type as c_int == ffi::COLOR_TYPE_RGB) {
+
+        // add alpha channels
+        ffi::png_set_add_alpha(png_ptr, 0xff, ffi::FILLER_AFTER);
+        if ffi::png_get_valid(png_ptr, info_ptr, ffi::INFO_tRNS as u32) != 0 {
             ffi::png_set_tRNS_to_alpha(png_ptr);
-            ffi::png_set_filler(png_ptr, 0xff, ffi::FILLER_AFTER);
         }
 
         ffi::png_set_packing(png_ptr);
@@ -285,6 +286,12 @@ mod test {
         load_rgba8("test/store.png", 10, 10);
     }
 
+    #[test]
+    fn test_load_grayscale() {
+        // grayscale images should be decoded to rgba
+        load_rgba8("test/gray.png", 100, 100);
+    }
+
     fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: &'static str) {
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Ok(r) => r,
@@ -317,7 +324,7 @@ mod test {
     fn test_load_perf() {
         bench_file_from_memory("test/servo-screenshot.png", 831, 624, "RGBA8");
         bench_file_from_memory("test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
-        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, "KA8");
+        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, "RGBA8");
     }
 
     #[test]

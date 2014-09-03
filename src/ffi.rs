@@ -70,6 +70,7 @@ extern {
     pub fn png_get_image_height(png_ptr: *mut png_struct, info_ptr: *mut png_info) -> u32;
     pub fn png_get_bit_depth(png_ptr: *mut png_struct, info_ptr: *mut png_info) -> u8;
     pub fn png_get_color_type(png_ptr: *mut png_struct, info_ptr: *mut png_info) -> u8;
+    pub fn png_get_valid(png_ptr: *mut png_struct, info_ptr: *mut png_info, flag: u32) -> u32;
     pub fn png_get_rows(png_ptr: *mut png_struct, info_ptr: *mut png_info) -> *mut *mut u8;
 
     pub fn png_set_IHDR(png_ptr: *mut png_struct, info_ptr: *mut png_info, width: u32, height: u32, bit_depth: c_int, color_type: c_int, interlace_method: c_int, compression_method: c_int, filter_method: c_int);
@@ -79,7 +80,9 @@ extern {
     pub fn png_set_packing(png_ptr: *mut png_struct);
     pub fn png_set_palette_to_rgb(png_ptr: *mut png_struct);
     pub fn png_set_expand_gray_1_2_4_to_8(png_ptr: *mut png_struct);
+    pub fn png_set_gray_to_rgb(png_ptr: *mut png_struct);
     pub fn png_set_tRNS_to_alpha(png_ptr: *mut png_struct);
+    pub fn png_set_add_alpha(png_ptr: *mut png_struct, val: u32, flag: c_int);
     pub fn png_set_filler(png_ptr: *mut png_struct, val: u32, flag: c_int);
     pub fn png_set_interlace_handling(png_ptr: *mut png_struct);
 }
