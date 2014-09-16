@@ -11,7 +11,6 @@
 #![crate_type = "rlib"]
 
 extern crate libc;
-extern crate std;
 
 use libc::{c_int, size_t};
 use std::mem;
