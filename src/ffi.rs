@@ -11,24 +11,24 @@
 
 use libc::{c_int, size_t, c_void, c_char};
 
-pub static TRANSFORM_IDENTITY: c_int = 0;
+pub const TRANSFORM_IDENTITY: c_int = 0;
 
-pub static FILTER_NONE: c_int = 0;
+pub const FILTER_NONE: c_int = 0;
 
-pub static INTERLACE_NONE: c_int = 0;
+pub const INTERLACE_NONE: c_int = 0;
 
-pub static COMPRESSION_TYPE_DEFAULT: c_int = 0;
+pub const COMPRESSION_TYPE_DEFAULT: c_int = 0;
 
-pub static COLOR_TYPE_GRAY: c_int = 0;
-pub static COLOR_TYPE_RGB: c_int = 2;
-pub static COLOR_TYPE_PALETTE: c_int = 3;
-pub static COLOR_TYPE_GRAY_ALPHA: c_int = 4;
-pub static COLOR_TYPE_GA: c_int = 4;
-pub static COLOR_TYPE_RGB_ALPHA: c_int = 6;
-pub static COLOR_TYPE_RGBA: c_int = 6;
+pub const COLOR_TYPE_GRAY: c_int = 0;
+pub const COLOR_TYPE_RGB: c_int = 2;
+pub const COLOR_TYPE_PALETTE: c_int = 3;
+pub const COLOR_TYPE_GRAY_ALPHA: c_int = 4;
+pub const COLOR_TYPE_GA: c_int = 4;
+pub const COLOR_TYPE_RGB_ALPHA: c_int = 6;
+pub const COLOR_TYPE_RGBA: c_int = 6;
 
-pub static FILLER_AFTER: c_int = 1;
-pub static INFO_tRNS: c_int = 0x0010;
+pub const FILLER_AFTER: c_int = 1;
+pub const INFO_tRNS: c_int = 0x0010;
 
 pub type png_struct = c_void;
 pub type png_info = c_void;
