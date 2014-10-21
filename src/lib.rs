@@ -56,7 +56,8 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let len = length as uint;
         slice::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
-            buf.copy_memory(image_data.data.slice(image_data.offset, image_data.offset+end_pos));
+            let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
+            ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
             image_data.offset += end_pos;
         });
     }
@@ -76,21 +77,21 @@ pub fn load_png(path: &Path) -> Result<Image,String> {
 
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
     unsafe {
-        let mut png_ptr = ffi::png_create_read_struct(&*ffi::png_get_header_ver(ptr::mut_null()),
-                                                      ptr::mut_null(),
-                                                      ptr::mut_null(),
-                                                      ptr::mut_null());
+        let mut png_ptr = ffi::png_create_read_struct(&*ffi::png_get_header_ver(ptr::null_mut()),
+                                                      ptr::null_mut(),
+                                                      ptr::null_mut(),
+                                                      ptr::null_mut());
         if png_ptr.is_null() {
             return Err("could not create read struct".to_string());
         }
         let mut info_ptr = ffi::png_create_info_struct(png_ptr);
         if info_ptr.is_null() {
-            ffi::png_destroy_read_struct(&mut png_ptr, ptr::mut_null(), ptr::mut_null());
+            ffi::png_destroy_read_struct(&mut png_ptr, ptr::null_mut(), ptr::null_mut());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
-            ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::mut_null());
+            ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
             return Err("error reading png".to_string());
         }
 
@@ -147,7 +148,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 
         ffi::png_read_image(png_ptr, row_pointers.as_mut_ptr());
 
-        ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::mut_null());
+        ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
 
         Ok(Image {
             width: width,
@@ -193,16 +194,16 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
     let writer = &mut writer;
 
     unsafe {
-        let mut png_ptr = ffi::png_create_write_struct(&*ffi::png_get_header_ver(ptr::mut_null()),
-                                                       ptr::mut_null(),
-                                                       ptr::mut_null(),
-                                                       ptr::mut_null());
+        let mut png_ptr = ffi::png_create_write_struct(&*ffi::png_get_header_ver(ptr::null_mut()),
+                                                       ptr::null_mut(),
+                                                       ptr::null_mut(),
+                                                       ptr::null_mut());
         if png_ptr.is_null() {
             return Err("could not create write struct".to_string());
         }
         let mut info_ptr = ffi::png_create_info_struct(png_ptr);
         if info_ptr.is_null() {
-            ffi::png_destroy_write_struct(&mut png_ptr, ptr::mut_null());
+            ffi::png_destroy_write_struct(&mut png_ptr, ptr::null_mut());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
@@ -228,7 +229,7 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
         });
         ffi::png_set_rows(png_ptr, info_ptr, row_pointers.as_mut_ptr());
 
-        ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::mut_null());
+        ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null_mut());
 
         ffi::png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
     }
@@ -255,7 +256,7 @@ mod test {
         };
 
         let mut buf = Vec::from_elem(1024, 0u8);
-        let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
+        let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
             let res = ffi::png_sig_cmp(buf.as_ptr(), 0, 8);
