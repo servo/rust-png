@@ -134,9 +134,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
         let (color_type, pixel_width) = match (updated_color_type as c_int, updated_bit_depth) {
             (ffi::COLOR_TYPE_RGB, 8) |
             (ffi::COLOR_TYPE_RGBA, 8) |
-            (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
-            (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
-            (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
+            (ffi::COLOR_TYPE_PALETTE, 8) => (PixelsByColorType::RGBA8, 4),
+            (ffi::COLOR_TYPE_GRAY, 8) => (PixelsByColorType::K8, 1),
+            (ffi::COLOR_TYPE_GA, 8) => (PixelsByColorType::KA8, 2),
             _ => panic!("color type not supported"),
         };
 
@@ -215,10 +215,10 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
         ffi::png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
 
         let (bit_depth, color_type, pixel_width, image_buf) = match img.pixels {
-            RGB8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGB, 3, pixels.as_mut_ptr()),
-            RGBA8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGBA, 4, pixels.as_mut_ptr()),
-            K8(ref mut pixels) => (8, ffi::COLOR_TYPE_GRAY, 1, pixels.as_mut_ptr()),
-            KA8(ref mut pixels) => (8, ffi::COLOR_TYPE_GA, 2, pixels.as_mut_ptr()),
+            PixelsByColorType::RGB8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGB, 3, pixels.as_mut_ptr()),
+            PixelsByColorType::RGBA8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGBA, 4, pixels.as_mut_ptr()),
+            PixelsByColorType::K8(ref mut pixels) => (8, ffi::COLOR_TYPE_GRAY, 1, pixels.as_mut_ptr()),
+            PixelsByColorType::KA8(ref mut pixels) => (8, ffi::COLOR_TYPE_GA, 2, pixels.as_mut_ptr()),
         };
 
         ffi::png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
