@@ -10,3 +10,5 @@
 /doc
 /target
 /Cargo.lock
+
+test/store.png
