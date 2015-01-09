@@ -45,13 +45,13 @@ struct ImageData<'a> {
 
 pub fn is_png(image: &[u8]) -> bool {
     unsafe {
-        ffi::png_sig_cmp(image.as_ptr(), 0, 8) == 0
+        ffi::RUST_png_sig_cmp(image.as_ptr(), 0, 8) == 0
     }
 }
 
 pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
-        let io_ptr = ffi::png_get_io_ptr(png_ptr);
+        let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = mem::transmute(io_ptr);
         let len = length as uint;
         slice::raw::mut_buf_as_slice(data, len, |buf| {
@@ -77,21 +77,21 @@ pub fn load_png(path: &Path) -> Result<Image,String> {
 
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
     unsafe {
-        let mut png_ptr = ffi::png_create_read_struct(&*ffi::png_get_header_ver(ptr::null_mut()),
+        let mut png_ptr = ffi::RUST_png_create_read_struct(&*ffi::RUST_png_get_header_ver(ptr::null_mut()),
                                                       ptr::null_mut(),
                                                       ptr::null_mut(),
                                                       ptr::null_mut());
         if png_ptr.is_null() {
             return Err("could not create read struct".to_string());
         }
-        let mut info_ptr = ffi::png_create_info_struct(png_ptr);
+        let mut info_ptr = ffi::RUST_png_create_info_struct(png_ptr);
         if info_ptr.is_null() {
-            ffi::png_destroy_read_struct(&mut png_ptr, ptr::null_mut(), ptr::null_mut());
+            ffi::RUST_png_destroy_read_struct(&mut png_ptr, ptr::null_mut(), ptr::null_mut());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
-            ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
+            ffi::RUST_png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
             return Err("error reading png".to_string());
         }
 
@@ -100,36 +100,36 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
             offset: 0,
         };
 
-        ffi::png_set_read_fn(png_ptr, mem::transmute(&mut image_data), read_data);
-        ffi::png_read_info(png_ptr, info_ptr);
+        ffi::RUST_png_set_read_fn(png_ptr, mem::transmute(&mut image_data), read_data);
+        ffi::RUST_png_read_info(png_ptr, info_ptr);
 
-        let width = ffi::png_get_image_width(png_ptr, info_ptr);
-        let height = ffi::png_get_image_height(png_ptr, info_ptr);
-        let color_type = ffi::png_get_color_type(png_ptr, info_ptr);
+        let width = ffi::RUST_png_get_image_width(png_ptr, info_ptr);
+        let height = ffi::RUST_png_get_image_height(png_ptr, info_ptr);
+        let color_type = ffi::RUST_png_get_color_type(png_ptr, info_ptr);
 
         // convert palette and grayscale to rgb
         match color_type as c_int {
             ffi::COLOR_TYPE_PALETTE => {
-                ffi::png_set_palette_to_rgb(png_ptr);
+                ffi::RUST_png_set_palette_to_rgb(png_ptr);
             }
             ffi::COLOR_TYPE_GRAY | ffi::COLOR_TYPE_GRAY_ALPHA => {
-                ffi::png_set_gray_to_rgb(png_ptr);
+                ffi::RUST_png_set_gray_to_rgb(png_ptr);
             }
             _ => {}
         }
 
         // add alpha channels
-        ffi::png_set_add_alpha(png_ptr, 0xff, ffi::FILLER_AFTER);
-        if ffi::png_get_valid(png_ptr, info_ptr, ffi::INFO_tRNS as u32) != 0 {
-            ffi::png_set_tRNS_to_alpha(png_ptr);
+        ffi::RUST_png_set_add_alpha(png_ptr, 0xff, ffi::FILLER_AFTER);
+        if ffi::RUST_png_get_valid(png_ptr, info_ptr, ffi::INFO_tRNS as u32) != 0 {
+            ffi::RUST_png_set_tRNS_to_alpha(png_ptr);
         }
 
-        ffi::png_set_packing(png_ptr);
-        ffi::png_set_interlace_handling(png_ptr);
-        ffi::png_read_update_info(png_ptr, info_ptr);
+        ffi::RUST_png_set_packing(png_ptr);
+        ffi::RUST_png_set_interlace_handling(png_ptr);
+        ffi::RUST_png_read_update_info(png_ptr, info_ptr);
 
-        let updated_bit_depth = ffi::png_get_bit_depth(png_ptr, info_ptr);
-        let updated_color_type = ffi::png_get_color_type(png_ptr, info_ptr);
+        let updated_bit_depth = ffi::RUST_png_get_bit_depth(png_ptr, info_ptr);
+        let updated_color_type = ffi::RUST_png_get_color_type(png_ptr, info_ptr);
 
         let (color_type, pixel_width) = match (updated_color_type as c_int, updated_bit_depth) {
             (ffi::COLOR_TYPE_RGB, 8) |
@@ -146,9 +146,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
         });
 
-        ffi::png_read_image(png_ptr, row_pointers.as_mut_ptr());
+        ffi::RUST_png_read_image(png_ptr, row_pointers.as_mut_ptr());
 
-        ffi::png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
+        ffi::RUST_png_destroy_read_struct(&mut png_ptr, &mut info_ptr, ptr::null_mut());
 
         Ok(Image {
             width: width,
@@ -160,7 +160,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 
 pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
-        let io_ptr = ffi::png_get_io_ptr(png_ptr);
+        let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         slice::raw::buf_as_slice(&*data, length as uint, |buf| {
             match writer.write(buf) {
@@ -173,7 +173,7 @@ pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: s
 
 pub extern fn flush_data(png_ptr: *mut ffi::png_struct) {
     unsafe {
-        let io_ptr = ffi::png_get_io_ptr(png_ptr);
+        let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         match writer.flush() {
             Err(e) => panic!("{}", e.desc),
@@ -194,25 +194,25 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
     let writer = &mut writer;
 
     unsafe {
-        let mut png_ptr = ffi::png_create_write_struct(&*ffi::png_get_header_ver(ptr::null_mut()),
+        let mut png_ptr = ffi::RUST_png_create_write_struct(&*ffi::RUST_png_get_header_ver(ptr::null_mut()),
                                                        ptr::null_mut(),
                                                        ptr::null_mut(),
                                                        ptr::null_mut());
         if png_ptr.is_null() {
             return Err("could not create write struct".to_string());
         }
-        let mut info_ptr = ffi::png_create_info_struct(png_ptr);
+        let mut info_ptr = ffi::RUST_png_create_info_struct(png_ptr);
         if info_ptr.is_null() {
-            ffi::png_destroy_write_struct(&mut png_ptr, ptr::null_mut());
+            ffi::RUST_png_destroy_write_struct(&mut png_ptr, ptr::null_mut());
             return Err("could not create info struct".to_string());
         }
         let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
         if res != 0 {
-            ffi::png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
+            ffi::RUST_png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
             return Err("error writing png".to_string());
         }
 
-        ffi::png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
+        ffi::RUST_png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
 
         let (bit_depth, color_type, pixel_width, image_buf) = match img.pixels {
             PixelsByColorType::RGB8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGB, 3, pixels.as_mut_ptr()),
@@ -221,17 +221,17 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
             PixelsByColorType::KA8(ref mut pixels) => (8, ffi::COLOR_TYPE_GA, 2, pixels.as_mut_ptr()),
         };
 
-        ffi::png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
+        ffi::RUST_png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let mut row_pointers: Vec<*mut u8> = Vec::from_fn(img.height as uint, |idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
         });
-        ffi::png_set_rows(png_ptr, info_ptr, row_pointers.as_mut_ptr());
+        ffi::RUST_png_set_rows(png_ptr, info_ptr, row_pointers.as_mut_ptr());
 
-        ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null_mut());
+        ffi::RUST_png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null_mut());
 
-        ffi::png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
+        ffi::RUST_png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
     }
     Ok(())
 }
@@ -259,7 +259,7 @@ mod test {
         let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
-            let res = ffi::png_sig_cmp(buf.as_ptr(), 0, 8);
+            let res = ffi::RUST_png_sig_cmp(buf.as_ptr(), 0, 8);
             assert!(res == 0);
         }
     }
