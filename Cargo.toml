@@ -4,7 +4,7 @@ name = "png"
 version = "0.1.0"
 authors = ["The Servo Project Developers"]
 
-links = "pngshim"
+links = "png-sys"
 build = "build.rs"
 
 [dependencies.png-sys]
