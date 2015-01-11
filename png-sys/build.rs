@@ -3,6 +3,16 @@ use std::io::process::InheritFd;
 use std::os;
 
 fn main() {
+    let target = os::getenv("TARGET").unwrap();
+    let is_android = target.find_str("android").is_some();
+
+    if is_android {
+        let cc = format!("{}-gcc", target);
+        let ar = format!("{}-ar", target);
+        os::setenv("CC", cc);
+        os::setenv("AR", ar);
+    }
+
     let cfg = Path::new(os::getenv("CARGO_MANIFEST_DIR").unwrap()).join("libpng-1.6.16/configure");
     let dst = Path::new(os::getenv("OUT_DIR").unwrap());
 
@@ -10,6 +20,9 @@ fn main() {
 
     let mut cmd = Command::new(cfg);
     cmd.arg("--with-libpng-prefix=RUST_");
+    if is_android {
+        cmd.arg("--host=arm-linux-gnueabi");
+    }
     cmd.cwd(&dst);
     run(&mut cmd);
 
