@@ -4,9 +4,12 @@ name = "png"
 version = "0.1.0"
 authors = ["The Servo Project Developers"]
 
-build = "make -f makefile.cargo"
+links = "png-sys"
+build = "build.rs"
 
 [dependencies.png-sys]
+path = "png-sys"
 
-git = "https://github.com/servo/libpng"
+[build-dependencies.gcc]
+git = "https://github.com/servo/gcc-rs"
 branch = "servo"

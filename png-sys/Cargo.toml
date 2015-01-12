@@ -1,0 +1,12 @@
+[package]
+
+name = "png-sys"
+version = "1.6.16"
+authors = ["The Servo Project Developers"]
+
+links = "png"
+build = "build.rs"
+
+[lib]
+name = "png-sys"
+path = "lib.rs"
