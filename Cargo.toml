@@ -11,5 +11,4 @@ build = "build.rs"
 path = "png-sys"
 
 [build-dependencies.gcc]
-git = "https://github.com/servo/gcc-rs"
-branch = "servo"
+git = "https://github.com/alexcrichton/gcc-rs"
