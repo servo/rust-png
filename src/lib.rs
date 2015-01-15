@@ -54,12 +54,11 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = mem::transmute(io_ptr);
         let len = length as uint;
-        slice::raw::mut_buf_as_slice(data, len, |buf| {
-            let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
-            let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
-            ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
-            image_data.offset += end_pos;
-        });
+        let buf = slice::from_raw_mut_buf(&data, len);
+        let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
+        let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
+        ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
+        image_data.offset += end_pos;
     }
 }
 
@@ -142,9 +141,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 
         let mut image_data = Vec::from_elem((width * height * pixel_width) as uint, 0u8);
         let image_buf = image_data.as_mut_ptr();
-        let mut row_pointers: Vec<*mut u8> = Vec::from_fn(height as uint, |idx| {
+        let mut row_pointers: Vec<*mut u8> = (0..height).map(|idx| {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
-        });
+        }).collect();
 
         ffi::RUST_png_read_image(png_ptr, row_pointers.as_mut_ptr());
 
@@ -162,12 +161,11 @@ pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: s
     unsafe {
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
-        slice::raw::buf_as_slice(&*data, length as uint, |buf| {
-            match writer.write(buf) {
-                Err(e) => panic!("{}", e.desc),
-                _ => {}
-            }
-        });
+        let buf = slice::from_raw_buf(&*data, length as uint);
+        match writer.write(buf) {
+            Err(e) => panic!("{}", e.desc),
+            _ => {}
+        }
     }
 }
 
@@ -224,9 +222,9 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
         ffi::RUST_png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
-        let mut row_pointers: Vec<*mut u8> = Vec::from_fn(img.height as uint, |idx| {
+        let mut row_pointers: Vec<*mut u8> = (0..img.height).map(|idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
-        });
+        }).collect();
         ffi::RUST_png_set_rows(png_ptr, info_ptr, row_pointers.as_mut_ptr());
 
         ffi::RUST_png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null_mut());
@@ -255,7 +253,7 @@ mod test {
             Err(e) => panic!(e.desc),
         };
 
-        let mut buf = Vec::from_elem(1024, 0u8);
+        let mut buf = repeat(0u8).take(1024).collect();
         let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
@@ -332,7 +330,7 @@ mod test {
         let mut img = Image {
             width: 10,
             height: 10,
-            pixels: RGB8(Vec::from_elem(10 * 10 * 3, 100u8)),
+            pixels: RGB8(repeat(100).take(10 * 10 * 3).collect()),
         };
         let res = store_png(&mut img, &Path::new("test/store.png"));
         assert!(res.is_ok());
