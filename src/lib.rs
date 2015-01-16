@@ -188,10 +188,13 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
         Err(e) => return Err(format!("{}", e))
     };
 
-    let mut writer = &mut file as &mut io::Writer;
+    let mut writer = &mut file;
+    write_png(img, writer)
+}
 
+pub fn write_png(img: &mut Image, writer: &mut io::Writer) -> Result<(), String> {
     // Box it again because a &Trait is too big to fit in a void*.
-    let writer = &mut writer;
+    let writer = &writer;
 
     unsafe {
         let mut png_ptr = ffi::RUST_png_create_write_struct(&*ffi::RUST_png_get_header_ver(ptr::null_mut()),
@@ -244,8 +247,8 @@ mod test {
     use std::io;
     use std::io::File;
 
-    use super::{ffi, load_png, load_png_from_memory, store_png};
-    use super::{RGB8, RGBA8, K8, KA8, Image};
+    use super::{ffi, load_png, load_png_from_memory, store_png, Image};
+    use super::PixelsByColorType::{RGB8, RGBA8, K8, KA8};
 
     #[test]
     fn test_valid_png() {
