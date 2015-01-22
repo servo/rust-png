@@ -106,6 +106,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
         let width = ffi::RUST_png_get_image_width(png_ptr, info_ptr);
         let height = ffi::RUST_png_get_image_height(png_ptr, info_ptr);
         let color_type = ffi::RUST_png_get_color_type(png_ptr, info_ptr);
+        let bit_depth = ffi::RUST_png_get_bit_depth(png_ptr, info_ptr);
 
         // convert palette and grayscale to rgb
         match color_type as c_int {
@@ -116,6 +117,11 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
                 ffi::RUST_png_set_gray_to_rgb(png_ptr);
             }
             _ => {}
+        }
+
+        // convert 16-bit channels to 8-bit
+        if bit_depth == 16 {
+            ffi::RUST_png_set_strip_16(png_ptr);
         }
 
         // add alpha channels
