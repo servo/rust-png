@@ -84,4 +84,5 @@ extern {
     pub fn RUST_png_set_add_alpha(png_ptr: *mut png_struct, val: u32, flag: c_int);
     pub fn RUST_png_set_filler(png_ptr: *mut png_struct, val: u32, flag: c_int);
     pub fn RUST_png_set_interlace_handling(png_ptr: *mut png_struct);
+    pub fn RUST_png_set_strip_16(png_ptr: *mut png_struct);
 }
