@@ -28,6 +28,7 @@ pub const COLOR_TYPE_RGB_ALPHA: c_int = 6;
 pub const COLOR_TYPE_RGBA: c_int = 6;
 
 pub const FILLER_AFTER: c_int = 1;
+#[allow(non_upper_case_globals)]
 pub const INFO_tRNS: c_int = 0x0010;
 
 pub type png_struct = c_void;
