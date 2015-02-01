@@ -10,7 +10,8 @@
 #![crate_name = "png"]
 #![crate_type = "rlib"]
 
-#![feature(collections, core, io, libc)]
+#![allow(unused_features)]
+#![feature(collections, core, io, libc, path, test)]
 
 extern crate libc;
 
@@ -253,8 +254,8 @@ mod test {
     use std::old_io::File;
     use std::iter::repeat;
 
-    use super::{ffi, load_png, load_png_from_memory, store_png};
-    use super::{RGB8, RGBA8, K8, KA8, Image};
+    use super::{ffi, load_png, load_png_from_memory, store_png, Image};
+    use super::PixelsByColorType::{RGB8, RGBA8, K8, KA8};
 
     #[test]
     fn test_valid_png() {
@@ -264,8 +265,8 @@ mod test {
             Err(e) => panic!(e.desc),
         };
 
-        let mut buf = repeat(0u8).take(1024).collect();
-        let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
+        let mut buf: Vec<u8> = repeat(0u8).take(1024).collect();
+        let count = reader.read(&mut buf[0..1024]).unwrap();
         assert!(count >= 8);
         unsafe {
             let res = ffi::RUST_png_sig_cmp(buf.as_ptr(), 0, 8);
