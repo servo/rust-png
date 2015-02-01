@@ -10,12 +10,15 @@
 #![crate_name = "png"]
 #![crate_type = "rlib"]
 
+#![allow(unused_features)]
+#![feature(collections, core, io, libc, path, test)]
+
 extern crate libc;
 
 use libc::{c_int, size_t};
 use std::mem;
-use std::io;
-use std::io::File;
+use std::old_io as io;
+use std::old_io::File;
 use std::iter::repeat;
 use std::ptr;
 use std::slice;
@@ -57,7 +60,7 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let len = length as usize;
         let buf = slice::from_raw_mut_buf(&data, len);
         let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
-        let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
+        let src = &image_data.data[image_data.offset..image_data.offset+end_pos];
         ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
         image_data.offset += end_pos;
     }
@@ -170,7 +173,7 @@ pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: s
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         let data = data as *const _;
         let buf = slice::from_raw_buf(&data, length as usize);
-        match writer.write(buf) {
+        match writer.write_all(buf) {
             Err(e) => panic!("{}", e.desc),
             _ => {}
         }
@@ -247,12 +250,12 @@ mod test {
     extern crate test;
     use self::test::bench;
     use self::test::fmt_bench_samples;
-    use std::io;
-    use std::io::File;
+    use std::old_io as io;
+    use std::old_io::File;
     use std::iter::repeat;
 
-    use super::{ffi, load_png, load_png_from_memory, store_png};
-    use super::{RGB8, RGBA8, K8, KA8, Image};
+    use super::{ffi, load_png, load_png_from_memory, store_png, Image};
+    use super::PixelsByColorType::{RGB8, RGBA8, K8, KA8};
 
     #[test]
     fn test_valid_png() {
@@ -262,8 +265,8 @@ mod test {
             Err(e) => panic!(e.desc),
         };
 
-        let mut buf = repeat(0u8).take(1024).collect();
-        let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
+        let mut buf: Vec<u8> = repeat(0u8).take(1024).collect();
+        let count = reader.read(&mut buf[0..1024]).unwrap();
         assert!(count >= 8);
         unsafe {
             let res = ffi::RUST_png_sig_cmp(buf.as_ptr(), 0, 8);

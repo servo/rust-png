@@ -1,5 +1,7 @@
-use std::io::Command;
-use std::io::process::InheritFd;
+#![feature(collections, io, os, path)]
+
+use std::old_io::Command;
+use std::old_io::process::InheritFd;
 use std::os;
 
 fn main() {
@@ -36,7 +38,7 @@ fn main() {
 }
 
 fn run(cmd: &mut Command) {
-    println!("running: {}", cmd);
+    println!("running: {:?}", cmd);
     assert!(cmd.stdout(InheritFd(1))
                .stderr(InheritFd(2))
                .status()
