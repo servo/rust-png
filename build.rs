@@ -2,17 +2,18 @@ extern crate gcc;
 
 use std::default::Default;
 use std::os;
+use std::path::PathBuf;
 
 fn main() {
-    let mut cfg: gcc::Config = Default::default();
+    let mut cfg: gcc::Config = gcc::Config::new();
 
-    let src_dir = Path::new(os::getenv("CARGO_MANIFEST_DIR").unwrap()).join("png-sys/libpng-1.6.16");
-    cfg.include_directories.push(src_dir);
+    cfg.file("src/shim.c");
 
-    let dep_dir = Path::new(os::getenv("DEP_PNG_ROOT").unwrap());
-    cfg.include_directories.push(dep_dir);
+    let src_dir = PathBuf::new(&os::getenv("CARGO_MANIFEST_DIR").unwrap()).join("png-sys/libpng-1.6.16");
+    cfg.include(&src_dir);
 
-    gcc::compile_library("libpngshim.a",
-                         &cfg,
-                         &["src/shim.c"]);
+    let dep_dir = PathBuf::new(&os::getenv("DEP_PNG_ROOT").unwrap());
+    cfg.include(&dep_dir);
+
+    cfg.compile("libpngshim.a")
 }
