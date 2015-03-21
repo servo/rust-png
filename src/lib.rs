@@ -61,7 +61,7 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let buf = slice::from_raw_parts_mut(data, len);
         let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
         let src = &image_data.data[image_data.offset..image_data.offset+end_pos];
-        ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
+        ptr::copy(buf.as_mut_ptr(), src.as_ptr(), src.len());
         image_data.offset += end_pos;
     }
 }
