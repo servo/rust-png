@@ -10,16 +10,16 @@
 #![crate_name = "png"]
 #![crate_type = "rlib"]
 
-#![allow(unused_features)]
-#![feature(collections, core, io, libc, path, test)]
+#![feature(core, io, libc, path)]
 
 extern crate libc;
 
 use libc::{c_int, size_t};
 use std::mem;
-use std::old_io as io;
-use std::old_io::File;
+use std::fs::File;
+use std::io::{Read, Write};
 use std::iter::repeat;
+use std::path::AsPath;
 use std::ptr;
 use std::slice;
 
@@ -66,16 +66,17 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
     }
 }
 
-pub fn load_png(path: &Path) -> Result<Image,String> {
-    let mut reader = match File::open_mode(path, io::Open, io::Read) {
+pub fn load_png<P: AsPath + ?Sized>(path: &P) -> Result<Image,String> {
+    let mut reader = match File::open(path) {
         Ok(r) => r,
-        Err(e) => return Err(format!("could not open file: {}", e.desc)),
+        Err(e) => return Err(format!("could not open file: {}", e.description())),
     };
-    let buf = match reader.read_to_end() {
-        Ok(b) => b,
-        Err(e) => return Err(format!("could not read file: {}", e.desc))
-    };
-    load_png_from_memory(buf.as_slice())
+    let mut buffer = vec![];
+    match reader.read_to_end(&mut buffer) {
+        Ok(()) => (),
+        Err(e) => return Err(format!("could not read file: {}", e.description())),
+    }
+    load_png_from_memory(&buffer)
 }
 
 pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
@@ -170,10 +171,10 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
 pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: size_t) {
     unsafe {
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
-        let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
+        let writer: &mut &mut Write = mem::transmute(io_ptr);
         let buf = slice::from_raw_parts(data as *const _, length as usize);
         match writer.write_all(buf) {
-            Err(e) => panic!("{}", e.desc),
+            Err(e) => panic!("{}", e.description()),
             _ => {}
         }
     }
@@ -182,21 +183,21 @@ pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: s
 pub extern fn flush_data(png_ptr: *mut ffi::png_struct) {
     unsafe {
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
-        let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
+        let writer: &mut &mut Write = mem::transmute(io_ptr);
         match writer.flush() {
-            Err(e) => panic!("{}", e.desc),
+            Err(e) => panic!("{}", e.description()),
             _ => {}
         }
     }
 }
 
-pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
+pub fn store_png<P: AsPath + ?Sized>(img: &mut Image, path: &P) -> Result<(),String> {
     let mut file = match File::create(path) {
         Ok(f) => f,
         Err(e) => return Err(format!("{}", e))
     };
 
-    let mut writer = &mut file as &mut io::Writer;
+    let mut writer = &mut file as &mut Write;
 
     // Box it again because a &Trait is too big to fit in a void*.
     let writer = &mut writer;
@@ -247,8 +248,8 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
 #[cfg(test)]
 mod test {
     extern crate test;
-    use std::old_io as io;
-    use std::old_io::File;
+    use std::fs::File;
+    use std::io::Read;
     use std::iter::repeat;
 
     use super::{ffi, load_png, load_png_from_memory, store_png, Image};
@@ -256,10 +257,9 @@ mod test {
 
     #[test]
     fn test_valid_png() {
-        let file = "test/servo-screenshot.png";
-        let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
+        let mut reader = match File::open("test/servo-screenshot.png") {
             Ok(r) => r,
-            Err(e) => panic!(e.desc),
+            Err(e) => panic!("{}", e.description()),
         };
 
         let mut buf: Vec<u8> = repeat(0u8).take(1024).collect();
@@ -301,14 +301,15 @@ mod test {
 
     fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
                               w: u32, h: u32, c: &'static str) {
-        let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
+        let mut reader = match File::open(file) {
             Ok(r) => r,
-            Err(e) => panic!("could not open '{}': {}", file, e.desc)
+            Err(e) => panic!("could not open '{}': {}", file, e.description())
         };
-        let buf = match reader.read_to_end() {
-            Ok(b) => b,
+        let mut buf = vec![];
+        match reader.read_to_end(&mut buf) {
+            Ok(()) => (),
             Err(e) => panic!(e)
-        };
+        }
         b.bench_n(1, |b| b.iter(|| {
             match load_png_from_memory(buf.as_slice()) {
                 Err(m) => panic!(m),
