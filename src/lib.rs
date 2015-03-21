@@ -58,7 +58,7 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = mem::transmute(io_ptr);
         let len = length as usize;
-        let buf = slice::from_raw_mut_buf(&data, len);
+        let buf = slice::from_raw_parts_mut(data, len);
         let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
         let src = &image_data.data[image_data.offset..image_data.offset+end_pos];
         ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
@@ -171,8 +171,7 @@ pub extern fn write_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: s
     unsafe {
         let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
-        let data = data as *const _;
-        let buf = slice::from_raw_buf(&data, length as usize);
+        let buf = slice::from_raw_parts(data as *const _, length as usize);
         match writer.write_all(buf) {
             Err(e) => panic!("{}", e.desc),
             _ => {}
