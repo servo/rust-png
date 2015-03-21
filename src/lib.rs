@@ -66,7 +66,7 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
     }
 }
 
-pub fn load_png<P: AsPath + ?Sized>(path: &P) -> Result<Image,String> {
+pub fn load_png<P: AsPath + ?Sized>(path: &P) -> Result<Image, String> {
     let mut reader = match File::open(path) {
         Ok(r) => r,
         Err(e) => return Err(format!("could not open file: {}", e.description())),
@@ -79,7 +79,7 @@ pub fn load_png<P: AsPath + ?Sized>(path: &P) -> Result<Image,String> {
     load_png_from_memory(&buffer)
 }
 
-pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
+pub fn load_png_from_memory(image: &[u8]) -> Result<Image, String> {
     unsafe {
         let mut png_ptr = ffi::RUST_png_create_read_struct(&*ffi::RUST_png_get_header_ver(ptr::null_mut()),
                                                       ptr::null_mut(),
