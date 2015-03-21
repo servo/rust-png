@@ -248,8 +248,6 @@ pub fn store_png(img: &mut Image, path: &Path) -> Result<(),String> {
 #[cfg(test)]
 mod test {
     extern crate test;
-    use self::test::bench;
-    use self::test::fmt_bench_samples;
     use std::old_io as io;
     use std::old_io::File;
     use std::iter::repeat;
@@ -302,7 +300,8 @@ mod test {
         load_rgba8("test/gray.png", 100, 100);
     }
 
-    fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: &'static str) {
+    fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
+                              w: u32, h: u32, c: &'static str) {
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Ok(r) => r,
             Err(e) => panic!("could not open '{}': {}", file, e.desc)
@@ -311,7 +310,7 @@ mod test {
             Ok(b) => b,
             Err(e) => panic!(e)
         };
-        let bs = bench::benchmark(|b| b.iter(|| {
+        b.bench_n(1, |b| b.iter(|| {
             match load_png_from_memory(buf.as_slice()) {
                 Err(m) => panic!(m),
                 Ok(image) => {
@@ -327,14 +326,21 @@ mod test {
                 }
             }
         }));
-        println!("libpng load '{}': {}", file, fmt_bench_samples(&bs));
     }
 
-    #[test]
-    fn test_load_perf() {
-        bench_file_from_memory("test/servo-screenshot.png", 831, 624, "RGBA8");
-        bench_file_from_memory("test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
-        bench_file_from_memory("test/rust-huge-logo.png", 4000, 4000, "RGBA8");
+    #[bench]
+    fn test_load_perf_screenshot(b: &mut test::Bencher) {
+        bench_file_from_memory(b, "test/servo-screenshot.png", 831, 624, "RGBA8");
+    }
+
+    #[bench]
+    fn test_load_perf_dino(b: &mut test::Bencher) {
+        bench_file_from_memory(b, "test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
+    }
+
+    #[bench]
+    fn test_load_perf_rust(b: &mut test::Bencher) {
+        bench_file_from_memory(b, "test/rust-huge-logo.png", 4000, 4000, "RGBA8");
     }
 
     #[test]

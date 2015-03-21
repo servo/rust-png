@@ -1,3 +1,5 @@
+#![feature(os, path)]
+
 extern crate gcc;
 
 use std::default::Default;
