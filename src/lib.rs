@@ -73,7 +73,7 @@ pub fn load_png<P: AsPath + ?Sized>(path: &P) -> Result<Image, String> {
     };
     let mut buffer = vec![];
     match reader.read_to_end(&mut buffer) {
-        Ok(()) => (),
+        Ok(_) => (),
         Err(e) => return Err(format!("could not read file: {}", e.description())),
     }
     load_png_from_memory(&buffer)
@@ -307,7 +307,7 @@ mod test {
         };
         let mut buf = vec![];
         match reader.read_to_end(&mut buf) {
-            Ok(()) => (),
+            Ok(_) => (),
             Err(e) => panic!(e)
         }
         b.bench_n(1, |b| b.iter(|| {
