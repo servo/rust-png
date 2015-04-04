@@ -10,5 +10,8 @@ build = "build.rs"
 [dependencies.png-sys]
 path = "png-sys"
 
+[dependencies]
+libc = "0.1.5"
+
 [build-dependencies.gcc]
 git = "https://github.com/alexcrichton/gcc-rs"

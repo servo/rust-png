@@ -1,36 +1,36 @@
-#![feature(collections, io, os, path)]
+use std::env;
+use std::path::PathBuf;
 
-use std::old_io::Command;
-use std::old_io::process::InheritFd;
-use std::os;
+use std::process::Command;
+use std::process::Stdio;
 
 fn main() {
-    let target = os::getenv("TARGET").unwrap();
-    let is_android = target.find_str("android").is_some();
+    let target = env::var("TARGET").unwrap();
+    let is_android = target.find("android").is_some();
 
     if is_android {
         let cc = format!("{}-gcc", target);
         let ar = format!("{}-ar", target);
-        os::setenv("CC", cc);
-        os::setenv("AR", ar);
+        env::set_var("CC", &cc);
+        env::set_var("AR", &ar);
     }
 
-    let cfg = Path::new(os::getenv("CARGO_MANIFEST_DIR").unwrap()).join("libpng-1.6.16/configure");
-    let dst = Path::new(os::getenv("OUT_DIR").unwrap());
+    let cfg = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("libpng-1.6.16/configure");
+    let dst = PathBuf::from(&env::var("OUT_DIR").unwrap());
 
-    os::setenv("CFLAGS", "-fPIC -O3");
+    env::set_var("CFLAGS", "-fPIC -O3");
 
     let mut cmd = Command::new(cfg);
     cmd.arg("--with-libpng-prefix=RUST_");
     if is_android {
         cmd.arg("--host=arm-linux-gnueabi");
     }
-    cmd.cwd(&dst);
+    cmd.current_dir(&dst);
     run(&mut cmd);
 
     let mut cmd = Command::new("make");
     cmd.arg("-j4");
-    cmd.cwd(&dst);
+    cmd.current_dir(&dst);
     run(&mut cmd);
 
     println!("cargo:root={}", dst.display());
@@ -39,8 +39,8 @@ fn main() {
 
 fn run(cmd: &mut Command) {
     println!("running: {:?}", cmd);
-    assert!(cmd.stdout(InheritFd(1))
-               .stderr(InheritFd(2))
+    assert!(cmd.stdout(Stdio::inherit())
+               .stderr(Stdio::inherit())
                .status()
                .unwrap()
                .success());
