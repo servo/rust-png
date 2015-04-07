@@ -246,15 +246,14 @@ pub fn store_png<P: AsRef<Path>>(img: &mut Image, path: P) -> Result<(),String> 
 
 #[cfg(test)]
 mod test {
-    extern crate test;
     use std::error::Error;
     use std::fs::File;
     use std::io::Read;
     use std::iter::repeat;
     use std::path::PathBuf;
 
-    use super::{ffi, load_png, load_png_from_memory, store_png, Image};
-    use super::PixelsByColorType::{RGB8, RGBA8, K8, KA8};
+    use super::{ffi, load_png, store_png, Image};
+    use super::PixelsByColorType::{RGB8, RGBA8};
 
     #[test]
     fn test_valid_png() {
@@ -300,49 +299,51 @@ mod test {
         load_rgba8("test/gray.png", 100, 100);
     }
 
-    fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
-                              w: u32, h: u32, c: &'static str) {
-        let mut reader = match File::open(file) {
-            Ok(r) => r,
-            Err(e) => panic!("could not open '{}': {}", file, e.description())
-        };
-        let mut buf = vec![];
-        match reader.read_to_end(&mut buf) {
-            Ok(_) => (),
-            Err(e) => panic!(e)
-        }
-        b.bench_n(1, |b| b.iter(|| {
-            match load_png_from_memory(buf.as_slice()) {
-                Err(m) => panic!(m),
-                Ok(image) => {
-                    let color_type = match image.pixels {
-                        K8(_) => "K8",
-                        KA8(_) => "KA8",
-                        RGB8(_) => "RGB8",
-                        RGBA8(_) => "RGBA8",
-                    };
-                    assert_eq!(color_type, c);
-                    assert_eq!(image.width, w);
-                    assert_eq!(image.height, h);
-                }
-            }
-        }));
-    }
-
-    #[bench]
-    fn test_load_perf_screenshot(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/servo-screenshot.png", 831, 624, "RGBA8");
-    }
-
-    #[bench]
-    fn test_load_perf_dino(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
-    }
-
-    #[bench]
-    fn test_load_perf_rust(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/rust-huge-logo.png", 4000, 4000, "RGBA8");
-    }
+    // // test::Bencher is unstable in beta, so these are commented out for the time being.
+    //
+    // fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
+    //                           w: u32, h: u32, c: &'static str) {
+    //     let mut reader = match File::open(file) {
+    //         Ok(r) => r,
+    //         Err(e) => panic!("could not open '{}': {}", file, e.description())
+    //     };
+    //     let mut buf = vec![];
+    //     match reader.read_to_end(&mut buf) {
+    //         Ok(_) => (),
+    //         Err(e) => panic!(e)
+    //     }
+    //     b.bench_n(1, |b| b.iter(|| {
+    //         match load_png_from_memory(buf.as_slice()) {
+    //             Err(m) => panic!(m),
+    //             Ok(image) => {
+    //                 let color_type = match image.pixels {
+    //                     K8(_) => "K8",
+    //                     KA8(_) => "KA8",
+    //                     RGB8(_) => "RGB8",
+    //                     RGBA8(_) => "RGBA8",
+    //                 };
+    //                 assert_eq!(color_type, c);
+    //                 assert_eq!(image.width, w);
+    //                 assert_eq!(image.height, h);
+    //             }
+    //         }
+    //     }));
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_screenshot(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/servo-screenshot.png", 831, 624, "RGBA8");
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_dino(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_rust(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/rust-huge-logo.png", 4000, 4000, "RGBA8");
+    // }
 
     #[test]
     fn test_store() {
