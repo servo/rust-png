@@ -10,16 +10,15 @@
 #![crate_name = "png"]
 #![crate_type = "rlib"]
 
-#![feature(core, io, libc, path)]
-
 extern crate libc;
 
 use libc::{c_int, size_t};
-use std::mem;
+use std::error::Error;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::repeat;
-use std::path::AsPath;
+use std::mem;
+use std::path::Path;
 use std::ptr;
 use std::slice;
 
@@ -61,12 +60,12 @@ pub extern fn read_data(png_ptr: *mut ffi::png_struct, data: *mut u8, length: si
         let buf = slice::from_raw_parts_mut(data, len);
         let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
         let src = &image_data.data[image_data.offset..image_data.offset+end_pos];
-        ptr::copy(buf.as_mut_ptr(), src.as_ptr(), src.len());
+        ptr::copy(src.as_ptr(), buf.as_mut_ptr(), src.len());
         image_data.offset += end_pos;
     }
 }
 
-pub fn load_png<P: AsPath>(path: P) -> Result<Image, String> {
+pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, String> {
     let mut reader = match File::open(path) {
         Ok(r) => r,
         Err(e) => return Err(format!("could not open file: {}", e.description())),
@@ -191,7 +190,7 @@ pub extern fn flush_data(png_ptr: *mut ffi::png_struct) {
     }
 }
 
-pub fn store_png<P: AsPath>(img: &mut Image, path: P) -> Result<(),String> {
+pub fn store_png<P: AsRef<Path>>(img: &mut Image, path: P) -> Result<(),String> {
     let mut file = match File::create(path) {
         Ok(f) => f,
         Err(e) => return Err(format!("{}", e))
@@ -247,13 +246,14 @@ pub fn store_png<P: AsPath>(img: &mut Image, path: P) -> Result<(),String> {
 
 #[cfg(test)]
 mod test {
-    extern crate test;
+    use std::error::Error;
     use std::fs::File;
     use std::io::Read;
     use std::iter::repeat;
+    use std::path::PathBuf;
 
-    use super::{ffi, load_png, load_png_from_memory, store_png, Image};
-    use super::PixelsByColorType::{RGB8, RGBA8, K8, KA8};
+    use super::{ffi, load_png, store_png, Image};
+    use super::PixelsByColorType::{RGB8, RGBA8};
 
     #[test]
     fn test_valid_png() {
@@ -272,7 +272,7 @@ mod test {
     }
 
     fn load_rgba8(file: &'static str, w: u32, h: u32) {
-        match load_png(&Path::new(file)) {
+        match load_png(&PathBuf::from(file)) {
             Err(m) => panic!(m),
             Ok(image) => {
                 assert_eq!(image.width, w);
@@ -299,49 +299,51 @@ mod test {
         load_rgba8("test/gray.png", 100, 100);
     }
 
-    fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
-                              w: u32, h: u32, c: &'static str) {
-        let mut reader = match File::open(file) {
-            Ok(r) => r,
-            Err(e) => panic!("could not open '{}': {}", file, e.description())
-        };
-        let mut buf = vec![];
-        match reader.read_to_end(&mut buf) {
-            Ok(_) => (),
-            Err(e) => panic!(e)
-        }
-        b.bench_n(1, |b| b.iter(|| {
-            match load_png_from_memory(buf.as_slice()) {
-                Err(m) => panic!(m),
-                Ok(image) => {
-                    let color_type = match image.pixels {
-                        K8(_) => "K8",
-                        KA8(_) => "KA8",
-                        RGB8(_) => "RGB8",
-                        RGBA8(_) => "RGBA8",
-                    };
-                    assert_eq!(color_type, c);
-                    assert_eq!(image.width, w);
-                    assert_eq!(image.height, h);
-                }
-            }
-        }));
-    }
-
-    #[bench]
-    fn test_load_perf_screenshot(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/servo-screenshot.png", 831, 624, "RGBA8");
-    }
-
-    #[bench]
-    fn test_load_perf_dino(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
-    }
-
-    #[bench]
-    fn test_load_perf_rust(b: &mut test::Bencher) {
-        bench_file_from_memory(b, "test/rust-huge-logo.png", 4000, 4000, "RGBA8");
-    }
+    // // test::Bencher is unstable in beta, so these are commented out for the time being.
+    //
+    // fn bench_file_from_memory(b: &mut test::Bencher, file: &'static str,
+    //                           w: u32, h: u32, c: &'static str) {
+    //     let mut reader = match File::open(file) {
+    //         Ok(r) => r,
+    //         Err(e) => panic!("could not open '{}': {}", file, e.description())
+    //     };
+    //     let mut buf = vec![];
+    //     match reader.read_to_end(&mut buf) {
+    //         Ok(_) => (),
+    //         Err(e) => panic!(e)
+    //     }
+    //     b.bench_n(1, |b| b.iter(|| {
+    //         match load_png_from_memory(buf.as_slice()) {
+    //             Err(m) => panic!(m),
+    //             Ok(image) => {
+    //                 let color_type = match image.pixels {
+    //                     K8(_) => "K8",
+    //                     KA8(_) => "KA8",
+    //                     RGB8(_) => "RGB8",
+    //                     RGBA8(_) => "RGBA8",
+    //                 };
+    //                 assert_eq!(color_type, c);
+    //                 assert_eq!(image.width, w);
+    //                 assert_eq!(image.height, h);
+    //             }
+    //         }
+    //     }));
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_screenshot(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/servo-screenshot.png", 831, 624, "RGBA8");
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_dino(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/mozilla-dinosaur-head-logo.png", 1300, 929, "RGBA8");
+    // }
+    //
+    // #[bench]
+    // fn test_load_perf_rust(b: &mut test::Bencher) {
+    //     bench_file_from_memory(b, "test/rust-huge-logo.png", 4000, 4000, "RGBA8");
+    // }
 
     #[test]
     fn test_store() {
@@ -350,7 +352,7 @@ mod test {
             height: 10,
             pixels: RGB8(repeat(100).take(10 * 10 * 3).collect()),
         };
-        let res = store_png(&mut img, &Path::new("test/store.png"));
+        let res = store_png(&mut img, &PathBuf::from("test/store.png"));
         assert!(res.is_ok());
     }
 }

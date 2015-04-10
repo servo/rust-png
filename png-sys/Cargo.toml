@@ -8,5 +8,5 @@ links = "png"
 build = "build.rs"
 
 [lib]
-name = "png-sys"
+name = "png_sys"
 path = "lib.rs"
