@@ -244,6 +244,69 @@ pub fn store_png<P: AsRef<Path>>(img: &mut Image, path: P) -> Result<(),String> 
     Ok(())
 }
 
+pub extern fn write_data_to_buf(png_ptr: *mut ffi::png_struct, data: *mut u8, length: size_t) {
+    unsafe {
+        let io_ptr = ffi::RUST_png_get_io_ptr(png_ptr);
+        let dest: &mut Vec<u8> = mem::transmute(io_ptr);
+        dest.reserve_exact(length as usize);
+        let buf = slice::from_raw_parts(data as *const _, length as usize);
+        for x in buf {
+            dest.push(*x);
+        }
+    }
+}
+
+pub extern fn flush_data_to_buf(_png_ptr: *mut ffi::png_struct) {}
+
+//TODO: This should share most of the implementation with store_png
+pub fn to_vec(img: &mut Image) -> Result<Vec<u8>,String> {
+    let target: Vec<u8> = Vec::new();
+
+    unsafe {
+        let mut png_ptr = ffi::RUST_png_create_write_struct(&*ffi::RUST_png_get_header_ver(ptr::null_mut()),
+                                                       ptr::null_mut(),
+                                                       ptr::null_mut(),
+                                                       ptr::null_mut());
+        if png_ptr.is_null() {
+            return Err("could not create write struct".to_string());
+        }
+        let mut info_ptr = ffi::RUST_png_create_info_struct(png_ptr);
+        if info_ptr.is_null() {
+            ffi::RUST_png_destroy_write_struct(&mut png_ptr, ptr::null_mut());
+            return Err("could not create info struct".to_string());
+        }
+        let res = ffi::setjmp(ffi::pngshim_jmpbuf(png_ptr));
+        if res != 0 {
+            ffi::RUST_png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
+            return Err("error writing png".to_string());
+        }
+
+        ffi::RUST_png_set_write_fn(png_ptr, mem::transmute(&target),
+                                   write_data_to_buf, flush_data_to_buf);
+
+        let (bit_depth, color_type, pixel_width, image_buf) = match img.pixels {
+            PixelsByColorType::RGB8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGB, 3, pixels.as_mut_ptr()),
+            PixelsByColorType::RGBA8(ref mut pixels) => (8, ffi::COLOR_TYPE_RGBA, 4, pixels.as_mut_ptr()),
+            PixelsByColorType::K8(ref mut pixels) => (8, ffi::COLOR_TYPE_GRAY, 1, pixels.as_mut_ptr()),
+            PixelsByColorType::KA8(ref mut pixels) => (8, ffi::COLOR_TYPE_GA, 2, pixels.as_mut_ptr()),
+        };
+
+        ffi::RUST_png_set_IHDR(png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
+                          ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
+
+        let mut row_pointers: Vec<*mut u8> = (0..img.height as usize).map(|idx| {
+            image_buf.offset((((img.width * pixel_width) as usize) * idx) as isize)
+        }).collect();
+        ffi::RUST_png_set_rows(png_ptr, info_ptr, row_pointers.as_mut_ptr());
+
+        ffi::RUST_png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null_mut());
+
+        ffi::RUST_png_destroy_write_struct(&mut png_ptr, &mut info_ptr);
+    }
+
+    Ok(target)
+}
+
 #[cfg(test)]
 mod test {
     use std::error::Error;
