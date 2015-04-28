@@ -315,7 +315,7 @@ mod test {
     use std::iter::repeat;
     use std::path::PathBuf;
 
-    use super::{ffi, load_png, store_png, Image};
+    use super::{ffi, load_png, store_png, to_vec, Image};
     use super::PixelsByColorType::{RGB8, RGBA8};
 
     #[test]
@@ -417,5 +417,27 @@ mod test {
         };
         let res = store_png(&mut img, &PathBuf::from("test/store.png"));
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_to_vec() {
+        let mut img = Image {
+            width: 10,
+            height: 10,
+            pixels: RGB8(repeat(100).take(10 * 10 * 3).collect()),
+        };
+        let res = to_vec(&mut img);
+        assert!(res.is_ok());
+        let data = res.unwrap();
+
+        // Check the PNG header
+        assert!(data[..8] == *b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A");
+
+        let path = PathBuf::from("test/to_vec.png");
+        let res = store_png(&mut img, &path);
+        assert!(res.is_ok());
+        let mut expected: Vec<u8> = Vec::with_capacity(data.len());
+        File::open(&path).unwrap().read_to_end(&mut expected).unwrap();
+        assert_eq!(data, expected);
     }
 }
