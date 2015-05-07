@@ -11,8 +11,10 @@ fn main() {
     if is_android {
         let cc = format!("{}-gcc", target);
         let ar = format!("{}-ar", target);
+        let ranlib = format!("{}-ranlib", target);
         env::set_var("CC", &cc);
         env::set_var("AR", &ar);
+        env::set_var("RANLIB", &ranlib);
     }
 
     let cfg = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("libpng-1.6.16/configure");
