@@ -3,6 +3,7 @@
 name = "png"
 version = "0.1.0"
 authors = ["The Servo Project Developers"]
+documentation = "http://doc.servo.org/png/"
 
 links = "png-sys"
 build = "build.rs"
