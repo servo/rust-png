@@ -6,9 +6,9 @@ use std::process::Stdio;
 
 fn main() {
     let target = env::var("TARGET").unwrap();
-    let is_android = target.find("android").is_some();
+    let is_target_embedded = target.find("eabi").is_some();
 
-    if is_android {
+    if is_target_embedded {
         let cc = format!("{}-gcc", target);
         let ar = format!("{}-ar", target);
         let ranlib = format!("{}-ranlib", target);
@@ -24,8 +24,8 @@ fn main() {
 
     let mut cmd = Command::new(cfg);
     cmd.arg("--with-libpng-prefix=RUST_");
-    if is_android {
-        cmd.arg("--host=arm-linux-gnueabi");
+    if is_target_embedded {
+        cmd.arg(format!("--host={}", target));
     }
     cmd.current_dir(&dst);
     run(&mut cmd);
