@@ -13,7 +13,7 @@ fn main() {
         let ar = format!("{}-ar", target);
         let ranlib = format!("{}-ranlib", target);
         // This will break raspbian as it provides gcc/etc through
-        // alternatives (https://wiki.debian.org/DebianAlternative).
+        // alternatives (https://wiki.debian.org/DebianAlternatives).
         env::set_var("CC", &cc);
         env::set_var("AR", &ar);
         env::set_var("RANLIB", &ranlib);
