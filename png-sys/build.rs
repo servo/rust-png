@@ -7,12 +7,13 @@ use std::process::Stdio;
 fn main() {
     let target = env::var("TARGET").unwrap();
     let host = env::var("HOST").unwrap();
-    let is_target_embedded = target.find("eabi").is_some();
 
-    if is_target_embedded {
+    if host != target {
         let cc = format!("{}-gcc", target);
         let ar = format!("{}-ar", target);
         let ranlib = format!("{}-ranlib", target);
+        // This will break raspbian as it provides gcc/etc through
+        // alternatives (https://wiki.debian.org/DebianAlternatives).
         env::set_var("CC", &cc);
         env::set_var("AR", &ar);
         env::set_var("RANLIB", &ranlib);
@@ -37,7 +38,7 @@ fn main() {
     } else {
         cmd = Command::new(cfg);
         cmd.arg("--with-libpng-prefix=RUST_");
-        if is_target_embedded {
+        if host != target {
             cmd.arg(format!("--host={}", target));
         }
     }
