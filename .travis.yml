@@ -12,3 +12,10 @@ script:
 
 after_script:
   - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
+
+branches:
+  except:
+    - master
+
+notifications:
+  webhooks: http://build.servo.org:54856/travis
