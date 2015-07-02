@@ -9,14 +9,15 @@ fn main() {
     let host = env::var("HOST").unwrap();
 
     if host != target {
-        let cc = format!("{}-gcc", target);
-        let ar = format!("{}-ar", target);
-        let ranlib = format!("{}-ranlib", target);
-        // This will break raspbian as it provides gcc/etc through
-        // alternatives (https://wiki.debian.org/DebianAlternatives).
-        env::set_var("CC", &cc);
-        env::set_var("AR", &ar);
-        env::set_var("RANLIB", &ranlib);
+        if env::var_os("CC").is_none() {
+            env::set_var("CC", format!("{}-gcc", target));
+        }
+        if env::var_os("AR").is_none() {
+            env::set_var("AR", format!("{}-ar", target));
+        }
+        if env::var_os("RANLIB").is_none() {
+            env::set_var("RANLIB", format!("{}-ranlib", target));
+        }
     }
 
     let cfg = PathBuf::from(&env::var("CARGO_MANIFEST_DIR")
