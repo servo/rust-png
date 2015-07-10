@@ -9,8 +9,13 @@
 
 #![crate_name = "png"]
 #![crate_type = "rlib"]
+#![cfg_attr(feature="serde-serialization", feature(custom_derive, plugin))]
+#![cfg_attr(feature="serde-serialization", plugin(serde_macros))]
 
 extern crate libc;
+
+#[cfg(feature="serde-serialization")]
+extern crate serde;
 
 use libc::{c_int, size_t};
 use std::error::Error;
@@ -24,7 +29,7 @@ use std::slice;
 
 pub mod ffi;
 
-
+#[cfg_attr(feature="serde-serialization", derive(Deserialize, Serialize))]
 pub enum PixelsByColorType {
     K8(Vec<u8>),
     KA8(Vec<u8>),
@@ -32,6 +37,7 @@ pub enum PixelsByColorType {
     RGBA8(Vec<u8>),
 }
 
+#[cfg_attr(feature="serde-serialization", derive(Deserialize, Serialize))]
 pub struct Image {
     pub width: u32,
     pub height: u32,
