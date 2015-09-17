@@ -14,5 +14,8 @@ fn main() {
     let dep_dir = PathBuf::from(&env::var("DEP_PNG_ROOT").unwrap());
     cfg.include(&dep_dir);
 
-    cfg.compile("libpngshim.a")
+    cfg.compile("libpngshim.a");
+
+    println!("cargo:rustc-link-search=native={}", env::var("OUT_DIR").unwrap());
+    println!("cargo:rustc-link-lib=static=pngshim");
 }

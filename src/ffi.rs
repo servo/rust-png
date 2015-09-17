@@ -34,8 +34,6 @@ pub const INFO_tRNS: c_int = 0x0010;
 pub type png_struct = c_void;
 pub type png_info = c_void;
 
-#[link(name = "z")]
-#[link(name = "png16", kind = "static")]
 extern {
     // libc routines needed
     pub fn setjmp(env: *mut c_void) -> c_int;
