@@ -52,7 +52,7 @@ fn main() {
 
     println!("cargo:root={}", dst.display());
     println!("cargo:rustc-link-search=native={}/.libs", dst.display());
-    println!("cargo:rustc-link-lib=png16");
+    println!("cargo:rustc-link-lib=static=png16");
 }
 
 fn run(cmd: &mut Command) {
