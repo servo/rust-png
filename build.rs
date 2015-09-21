@@ -14,5 +14,5 @@ fn main() {
     let dep_dir = PathBuf::from(&env::var("DEP_PNG_ROOT").unwrap());
     cfg.include(&dep_dir);
 
-    cfg.compile("libpngshim.a")
+    cfg.compile("libpngshim.a");
 }

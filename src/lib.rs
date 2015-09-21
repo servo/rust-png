@@ -13,6 +13,7 @@
 #![cfg_attr(feature="serde-serialization", plugin(serde_macros))]
 
 extern crate libc;
+extern crate png_sys;
 
 #[cfg(feature="serde-serialization")]
 extern crate serde;
