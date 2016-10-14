@@ -156,7 +156,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image, String> {
             _ => panic!("color type not supported"),
         };
 
-        let mut image_data: Vec<u8> = repeat(0u8).take(width * height * pixel_width).collect();
+        let mut image_data: Vec<u8> = vec![0u8;width * height * pixel_width];
         let image_buf = image_data.as_mut_ptr();
         let mut row_pointers: Vec<*mut u8> = (0..height).map(|idx| {
             image_buf.offset((width * pixel_width * idx) as isize)
